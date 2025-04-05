@@ -134,3 +134,13 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# JetBrains Rider files
+.idea/
+
+# VSCode files
+.vscode/
+
+# Cursor files
+.cursorrules
+.cursor/

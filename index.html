@@ -1,0 +1,348 @@
+<html>
+<head>
+	<script src="web/comfy.min.js"></script>
+	<script src="web/comfyjazz.js"></script>
+	<script src="web/howler.min.js"></script>
+	<script src="web/streamerbot-client.min.js"></script>
+
+	<style>
+		body {
+			margin: 0;
+			padding: 0;
+			font-family: 'Georgia', serif;
+			overflow: hidden;
+		}
+
+		#comfy-controls {
+			padding: 40px;
+			background: linear-gradient(to bottom, #192231, #24344d);
+			color: #e6e6e6;
+			border-radius: 8px;
+			position: fixed;
+			top: 20px;
+			right: 20px;
+			max-width: 300px;
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+			transition: opacity 0.3s ease;
+			display: block;
+			z-index: 100;
+		}
+
+		#comfy-controls.hide {
+			display: none;
+		}
+
+		.control-group {
+			margin-bottom: 16px;
+		}
+
+		h1 {
+			margin-top: 0;
+			font-size: 24px;
+			border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+			padding-bottom: 10px;
+		}
+
+		label {
+			display: block;
+			margin-bottom: 8px;
+			font-size: 14px;
+		}
+
+		.control-description {
+			display: block;
+			font-size: 12px;
+			color: rgba(255, 255, 255, 0.7);
+			font-style: italic;
+			margin-top: 2px;
+		}
+
+		button {
+			background-color: #344966;
+			color: white;
+			border: none;
+			padding: 8px 16px;
+			border-radius: 4px;
+			cursor: pointer;
+			transition: background-color 0.2s;
+			font-family: inherit;
+		}
+
+		button:hover {
+			background-color: #4d6d96;
+		}
+
+		select,
+		input[type="range"] {
+			width: 100%;
+			margin-top: 5px;
+		}
+
+		select {
+			padding: 5px;
+			background-color: #344966;
+			color: white;
+			border: none;
+			border-radius: 4px;
+		}
+
+		.value-display {
+			display: inline-block;
+			margin-left: 10px;
+			font-size: 12px;
+			background: rgba(0, 0, 0, 0.2);
+			padding: 2px 6px;
+			border-radius: 3px;
+			min-width: 30px;
+			text-align: center;
+		}
+
+		.slider-container {
+			display: flex;
+			align-items: center;
+			margin-top: 5px;
+		}
+
+		.reset-button {
+			display: block;
+			margin-top: 20px;
+			width: 100%;
+			background-color: #5a6f8f;
+		}
+
+		.keyboard-shortcuts {
+			margin-top: 20px;
+			padding-top: 10px;
+			border-top: 1px solid rgba(255, 255, 255, 0.2);
+			font-size: 12px;
+		}
+
+		kbd {
+			background-color: #344966;
+			border-radius: 3px;
+			padding: 2px 5px;
+			font-size: 12px;
+		}
+	</style>
+</head>
+
+<body>
+	<div id="comfy-controls" class="hide">
+		<h1>ComfyJazz</h1>
+		<div class="control-group">
+			<label for="volume-control">Volume:</label>
+			<div class="slider-container">
+				<input id="volume-control" type="range" min=0 max=1 step="0.05" value="1"
+					onchange="onVolumeChange(event)" oninput="updateSliderValue(this, 'volume-value')">
+				<span id="volume-value" class="value-display">1.00</span>
+			</div>
+			<button id="mute-button" onclick="toggleMute()">Mute</button>
+		</div>
+
+		<div class="control-group">
+			<label for="instrument-select">Instrument:</label>
+			<select id="instrument-select" onchange="changeInstrument(event)">
+				<option value="piano">Piano</option>
+				<option value="guitar">Guitar</option>
+				<option value="sax">Saxophone</option>
+				<option value="clarinet">Clarinet</option>
+				<option value="guzheng">Guzheng</option>
+				<option value="harp">Harp</option>
+				<option value="twinkle">Twinkle</option>
+				<option value="vibraphone">Vibraphone</option>
+			</select>
+		</div>
+
+		<div class="control-group">
+			<label for="note-density">Note Probability:
+				<span class="control-description">Chance of playing a note (0-1, higher = more notes)</span>
+			</label>
+			<div class="slider-container">
+				<input id="note-density" type="range" min=0 max=1 step="0.05" value="0.2"
+					onchange="adjustNoteDensity(event)" oninput="updateSliderValue(this, 'density-value')">
+				<span id="density-value" class="value-display">0.20</span>
+			</div>
+		</div>
+
+		<div class="control-group">
+			<label for="auto-notes-delay">Check Interval (ms):
+				<span class="control-description">Time between note generation attempts</span>
+			</label>
+			<div class="slider-container">
+				<input id="auto-notes-delay" type="range" min=100 max=1000 step="50" value="300"
+					onchange="adjustNoteDelay(event)" oninput="updateSliderValue(this, 'delay-value', false)">
+				<span id="delay-value" class="value-display">300</span>
+			</div>
+		</div>
+
+		<div class="control-group">
+			<button id="toggle-play" onclick="togglePlayback()">Pause</button>
+		</div>
+
+		<button id="reset-button" class="reset-button" onclick="resetToDefaults()">Reset All Settings</button>
+
+		<div class="keyboard-shortcuts">
+			<p><kbd>C</kbd> Toggle controls | <kbd>Any key</kbd> Play note progression</p>
+		</div>
+	</div>
+
+	<script>
+		const params = new URLSearchParams(location.search);
+
+		const instrument = params.get("instrument");
+		const volume = params.get("volume");
+		let isPlaying = true;
+
+		// Default settings
+		const DEFAULT_SETTINGS = {
+			volume: 1,
+			instrument: "piano",
+			noteDensity: 0.2,
+			noteDelay: 300,
+			playAutoNotes: true
+		};
+
+		//Start ComfyJazz
+		const comfyJazz = ComfyJazz({
+			autoNotesChance: DEFAULT_SETTINGS.noteDensity,
+			autoNotesDelay: DEFAULT_SETTINGS.noteDelay,
+			instrument: instrument || DEFAULT_SETTINGS.instrument,
+			volume: volume || DEFAULT_SETTINGS.volume
+		});
+		comfyJazz.start();
+
+		// Initialize controls
+		document.getElementById('volume-control').value = volume || DEFAULT_SETTINGS.volume;
+		updateSliderValue(document.getElementById('volume-control'), 'volume-value');
+
+		document.getElementById('instrument-select').value = instrument || DEFAULT_SETTINGS.instrument;
+
+		document.getElementById('note-density').value = DEFAULT_SETTINGS.noteDensity;
+		updateSliderValue(document.getElementById('note-density'), 'density-value');
+
+		document.getElementById('auto-notes-delay').value = DEFAULT_SETTINGS.noteDelay;
+		updateSliderValue(document.getElementById('auto-notes-delay'), 'delay-value', false);
+
+		// Function to update slider value display
+		function updateSliderValue(slider, valueDisplayId, useDecimals = true) {
+			const displayElement = document.getElementById(valueDisplayId);
+			if (displayElement) {
+				displayElement.textContent = useDecimals 
+					? parseFloat(slider.value).toFixed(2) 
+					: slider.value;
+			}
+		}
+
+		// Function to reset all settings to defaults
+		function resetToDefaults() {
+			// Reset volume
+			document.getElementById('volume-control').value = DEFAULT_SETTINGS.volume;
+			updateSliderValue(document.getElementById('volume-control'), 'volume-value');
+			comfyJazz.setVolume(DEFAULT_SETTINGS.volume);
+
+			// Reset instrument
+			document.getElementById('instrument-select').value = DEFAULT_SETTINGS.instrument;
+			comfyJazz.instrument = DEFAULT_SETTINGS.instrument;
+
+			// Reset note density
+			document.getElementById('note-density').value = DEFAULT_SETTINGS.noteDensity;
+			updateSliderValue(document.getElementById('note-density'), 'density-value');
+			comfyJazz.autoNotesChance = DEFAULT_SETTINGS.noteDensity;
+
+			// Reset note delay
+			document.getElementById('auto-notes-delay').value = DEFAULT_SETTINGS.noteDelay;
+			updateSliderValue(document.getElementById('auto-notes-delay'), 'delay-value', false);
+			comfyJazz.autoNotesDelay = DEFAULT_SETTINGS.noteDelay;
+
+			// Reset playback state
+			if (!isPlaying) {
+				comfyJazz.playAutoNotes = true;
+				document.getElementById('toggle-play').textContent = "Pause";
+				isPlaying = true;
+			}
+
+			// Update mute button
+			document.getElementById('mute-button').textContent = "Mute";
+		}
+
+		//Integrate with Twitch Chat
+		const channel = params.get("channel");
+
+		if (channel) {
+			ComfyJS.onChat = (user, message, flags, self, extra) => {
+				comfyJazz.playNoteProgression((Math.random() * 8) >> 0);
+			};
+			ComfyJS.Init(channel);
+		}
+
+		//Keydown triggers notes
+		window.addEventListener("keydown", (e) => {
+			//c will open the control panel
+			if (e.code === "KeyC") {
+				document.querySelector("#comfy-controls").classList.toggle('hide');
+			} else {
+				comfyJazz.playNoteProgression((Math.random() * 8) >> 0);
+			}
+		});
+
+		function onVolumeChange(e) {
+			comfyJazz.setVolume(e.currentTarget.value);
+			// Update mute button state
+			document.getElementById('mute-button').textContent =
+				parseFloat(e.currentTarget.value) === 0 ? "Unmute" : "Mute";
+			updateSliderValue(e.currentTarget, 'volume-value');
+		}
+
+		function toggleMute() {
+			const volumeControl = document.getElementById('volume-control');
+			const muteButton = document.getElementById('mute-button');
+
+			if (comfyJazz.isMuted()) {
+				// If currently muted, restore to previous volume or default to 1
+				const previousVolume = volumeControl.getAttribute('data-previous-volume') || 1;
+				volumeControl.value = previousVolume;
+				comfyJazz.setVolume(previousVolume);
+				muteButton.textContent = "Mute";
+				updateSliderValue(volumeControl, 'volume-value');
+			} else {
+				// If not muted, save current volume and then mute
+				volumeControl.setAttribute('data-previous-volume', volumeControl.value);
+				volumeControl.value = 0;
+				comfyJazz.setVolume(0);
+				muteButton.textContent = "Unmute";
+				updateSliderValue(volumeControl, 'volume-value');
+			}
+		}
+
+		function changeInstrument(e) {
+			comfyJazz.instrument = e.currentTarget.value;
+		}
+
+		function adjustNoteDensity(e) {
+			comfyJazz.autoNotesChance = parseFloat(e.currentTarget.value);
+			updateSliderValue(e.currentTarget, 'density-value');
+		}
+
+		function adjustNoteDelay(e) {
+			comfyJazz.autoNotesDelay = parseInt(e.currentTarget.value);
+			updateSliderValue(e.currentTarget, 'delay-value', false);
+		}
+
+		function togglePlayback() {
+			const playButton = document.getElementById('toggle-play');
+
+			if (isPlaying) {
+				comfyJazz.playAutoNotes = false;
+				playButton.textContent = "Resume";
+			} else {
+				comfyJazz.playAutoNotes = true;
+				playButton.textContent = "Pause";
+			}
+
+			isPlaying = !isPlaying;
+		}
+
+	</script>
+</body>
+
+</html>
