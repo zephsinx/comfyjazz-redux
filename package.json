@@ -4,7 +4,11 @@
   "description": "Comfiest Computer-Generated Twitch-Integrate Jazz Music!",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint src --ext .js",
+    "format": "prettier --write \"src/**/*.js\""
   },
   "repository": {
     "type": "git",
@@ -27,5 +31,14 @@
   "homepage": "https://github.com/instafluff/ComfyJazz#readme",
   "dependencies": {
     "webwebweb": "^1.4.0"
+  },
+  "devDependencies": {
+    "eslint": "^9.24.0",
+    "eslint-config-prettier": "^10.1.1",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-prettier": "^5.2.6",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.3",
+    "vite": "^6.2.5"
   }
 }
