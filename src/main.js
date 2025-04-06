@@ -10,6 +10,7 @@ import {
   playAudio,
   loadAudio,
   setMasterVolume,
+  preloadAudios,
 } from './modules/audio-engine.js';
 import {
   initNoteGenerator,
@@ -17,6 +18,7 @@ import {
   updateCurrentScaleProgression,
 } from './modules/note-generator.js';
 import { generateRandomInteger } from './modules/music-theory.js';
+import { notes } from './modules/config.js';
 
 class ComfyJazz {
   constructor(options = {}) {
@@ -279,7 +281,10 @@ class ComfyJazz {
   /**
    * Starts the music generator
    */
-  start() {
+  async start() {
+    // Preload all audio files first
+    await this.preloadAllSoundFiles();
+
     // Start audio context if it was suspended
     const audioContext = initAudioContext();
     if (audioContext.state === 'suspended') {
@@ -295,6 +300,67 @@ class ComfyJazz {
 
     // Start the animation loop
     requestAnimationFrame(this.update.bind(this));
+  }
+
+  /**
+   * Preloads all audio files needed for the application
+   * @returns {Promise<void>}
+   */
+  async preloadAllSoundFiles() {
+    // Display loading indicator
+    this.showLoadingIndicator('Loading sounds...');
+
+    const instruments = this.options.instrument.split(',').map((i) => i.trim());
+    const urlsToPreload = [];
+
+    // For each instrument, preload all note files
+    for (const instrument of instruments) {
+      for (const note of notes) {
+        urlsToPreload.push(`${this.options.baseUrl}/${instrument}/${note.url}.ogg`);
+      }
+    }
+
+    // Also preload the background loop
+    urlsToPreload.push(`${this.options.baseUrl}/${this.options.backgroundLoopUrl}`);
+
+    try {
+      await preloadAudios(urlsToPreload);
+      this.hideLoadingIndicator();
+    } catch (error) {
+      console.error('Error preloading audio files:', error);
+      this.hideLoadingIndicator('Some sounds failed to load. Experience may be degraded.');
+    }
+  }
+
+  /**
+   * Shows a loading indicator with a message
+   * @param {string} message - Message to display
+   */
+  showLoadingIndicator(message) {
+    const loadingEl = document.createElement('div');
+    loadingEl.id = 'comfy-loading';
+    loadingEl.style.cssText =
+      'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);color:white;display:flex;align-items:center;justify-content:center;z-index:9999;font-family:sans-serif;';
+    loadingEl.innerHTML = `<div>${message || 'Loading...'}</div>`;
+    document.body.appendChild(loadingEl);
+  }
+
+  /**
+   * Hides the loading indicator
+   * @param {string} errorMessage - Optional error message to display before hiding
+   */
+  hideLoadingIndicator(errorMessage) {
+    const loadingEl = document.getElementById('comfy-loading');
+    if (loadingEl) {
+      if (errorMessage) {
+        loadingEl.innerHTML = `<div>${errorMessage}</div>`;
+        setTimeout(() => {
+          loadingEl.remove();
+        }, 3000);
+      } else {
+        loadingEl.remove();
+      }
+    }
   }
 
   /**
@@ -448,7 +514,7 @@ async function init() {
   });
 
   // Start playing
-  comfyJazz.start();
+  await comfyJazz.start();
 
   // Expose to window for debugging
   window.comfyJazz = comfyJazz;
