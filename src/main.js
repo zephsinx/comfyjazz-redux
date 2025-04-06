@@ -273,7 +273,6 @@ class ComfyJazz {
         this.playNoteProgression(Math.floor(Math.random() * 8) + 1);
       };
       window.ComfyJS.Init(channel);
-      console.log(`Connected to Twitch channel: ${channel}`);
     }
   }
 

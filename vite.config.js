@@ -1,4 +1,6 @@
-export default {
+import { defineConfig } from 'vite';
+
+export default defineConfig({
   root: './',
   publicDir: './public',
   build: {
@@ -8,4 +10,4 @@ export default {
   server: {
     port: 8901,
   },
-} 
+}); 

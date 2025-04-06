@@ -193,9 +193,12 @@ export const stopAllAudio = () => {
  * @param {number} volume - Volume level (0-1)
  */
 export const setMasterVolume = (volume) => {
-  // This would need a more sophisticated implementation
-  // with a master volume node in a real-world scenario
-  console.log(`Master volume set to ${volume}`);
+  // Apply volume to all active audio nodes
+  activeAudioNodes.forEach((node) => {
+    if (node.gainNode && node.gainNode.gain) {
+      node.gainNode.gain.value = volume;
+    }
+  });
 };
 
 /**

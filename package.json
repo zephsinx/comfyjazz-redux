@@ -2,6 +2,7 @@
   "name": "comfyjazz",
   "version": "1.0.0",
   "description": "Comfiest Computer-Generated Twitch-Integrate Jazz Music!",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "dev": "vite",
