@@ -186,25 +186,25 @@ export const notes = [
   {
     url: 'note_77',
     metaData: {
-      root: 78,
-      startRange: 77,
-      endRange: 79,
+      root: 77,
+      startRange: 76,
+      endRange: 78,
     },
   },
   {
     url: 'note_74',
     metaData: {
-      root: 75,
-      startRange: 74,
-      endRange: 76,
+      root: 74,
+      startRange: 73,
+      endRange: 75,
     },
   },
   {
     url: 'note_71',
     metaData: {
-      root: 72,
-      startRange: 71,
-      endRange: 73,
+      root: 71,
+      startRange: 70,
+      endRange: 72,
     },
   },
   {
