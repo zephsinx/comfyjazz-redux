@@ -1,0 +1,69 @@
+<html>
+	<head>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.0/howler.min.js" integrity="sha512-ALoawPS0JxHQ+8dGL7htZIlVNRaE/SN9gHD4G8pJJTi9H4BQ/3PjdvhggSGR34g00mvTPFkxQuveQUsJA5664Q==" crossorigin="anonymous"></script>
+		<script src="https://cdn.jsdelivr.net/npm/comfy.js@latest/dist/comfy.min.js"></script>
+		<script src="web/ComfyJazz.js"></script>
+
+		<style>
+			#comfy-controls {
+				padding:40px;
+				background-color:#ccc;
+				display:block;
+			}
+
+			#comfy-controls.hide {
+				display:none;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="comfy-controls" class="hide">
+			<h1>Comfy Jazz Control Panel</h1>
+			<label for="">Volume:
+				<input type="range" min=0 max=1 step="0.05" onchange="onVolumeChange(event)">
+			</label>
+		</div>
+	<script>
+
+	const params = new URLSearchParams(location.search);
+
+	const instrument = params.get("instrument");
+	const volume = params.get("volume");
+
+	//Start ComfyJazz
+	const comfyJazz = ComfyJazz({
+		autoNotesChance:0.3,
+		instrument: instrument || "piano",
+		volume: volume || 1
+	});
+	comfyJazz.start();
+
+	//Integrate with Twitch Chat
+	const channel = params.get("channel");
+
+	if( channel ) {
+		ComfyJS.onChat = (user, message, flags, self, extra) => {
+			comfyJazz.playNoteProgression((Math.random() * 8) >> 0);
+		};
+		ComfyJS.Init(channel);
+	}
+
+	//Keydown triggers notes
+	window.addEventListener("keydown", (e) => {
+
+		//c will open the control panel
+		if( e.code === "KeyC" ) {
+			document.querySelector("#comfy-controls").classList.toggle('hide');
+		} else {
+			// comfyJazz.playNote();
+			comfyJazz.playNoteProgression((Math.random() * 8) >> 0);
+		}
+	});
+
+	function onVolumeChange(e) {
+		comfyJazz.setVolume(e.currentTarget.value);
+	}
+
+	</script>
+	</body>
+</html>
