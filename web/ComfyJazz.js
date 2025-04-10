@@ -168,7 +168,7 @@ const ComfyJazz = (options = {}) => {
   function getNextNote() {
     if (
       performance.now() - lastNoteTime > 900 ||
-      this.noteCount > this.maxNNotesPerPattern
+      noteCount > maxNNotesPerPattern
     ) {
       changePattern();
       noteCount = 0;
