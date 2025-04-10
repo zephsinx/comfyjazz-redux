@@ -1,0 +1,9 @@
+#comfy-controls {
+	padding:40px;
+	background-color:#ccc;
+	display:block;
+}
+
+#comfy-controls.hide {
+	display:none;
+} 

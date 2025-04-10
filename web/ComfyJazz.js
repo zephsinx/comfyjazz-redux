@@ -1,7 +1,7 @@
 //dependent on Howler.js https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.0/howler.min.js
 
 const ComfyJazz = (options = {}) => {
-  //Default property values, can be passed in and overidden
+  //Default property values, can be passed in and overridden
   const defaultOptions = {
     baseUrl: "web/sounds",
     instrument: "piano",
@@ -21,13 +21,12 @@ const ComfyJazz = (options = {}) => {
   cj.setVolume = (vol) => {
     cj.volume = vol;
 
-    if( cj.backgroundSound ) {
+    if (cj.backgroundSound) {
       cj.backgroundSound.volume(vol);
     }
-      if( cj.lastSound ) {
+    if (cj.lastSound) {
       cj.lastSound.volume(vol);
     }
-
   };
 
   cj.mute = () => cj.setVolume(0);
@@ -55,11 +54,18 @@ const ComfyJazz = (options = {}) => {
         currentTime = 0;
 
         // play the background music again
-        playBackgroundSound(`${cj.baseUrl}/${cj.backgroundLoopUrl}`, cj.volume, 1);
+        playBackgroundSound(
+          `${cj.baseUrl}/${cj.backgroundLoopUrl}`,
+          cj.volume,
+          1
+        );
       }
 
       for (let i = 0; i < scaleProgression.length; i++) {
-        if (scaleProgression[i].start <= currentTime && currentTime <= scaleProgression[i].end) {
+        if (
+          scaleProgression[i].start <= currentTime &&
+          currentTime <= scaleProgression[i].end
+        ) {
           currentScaleProgression = i;
           break;
         }
@@ -82,15 +88,19 @@ const ComfyJazz = (options = {}) => {
   async function playNoteRandomly(minRandom = 0, maxRandom = 200) {
     setTimeout(async () => {
       let sound = getNextNote();
-	  const instruments = cj.instrument.split( "," ).map( x => x.trim() );
-	  let instrument = instruments[ getRandomInt( instruments.length ) ];
-      await playSound(`${cj.baseUrl}/${instrument}/${sound.url}.ogg`, cj.volume, sound.playbackRate);
+      const instruments = cj.instrument.split(",").map((x) => x.trim());
+      let instrument = instruments[getRandomInt(instruments.length)];
+      await playSound(
+        `${cj.baseUrl}/${instrument}/${sound.url}.ogg`,
+        cj.volume,
+        sound.playbackRate
+      );
     }, minRandom + Math.random() * maxRandom);
   }
 
   //Play a progression of notes, with random delay spacing!
   function playNoteProgression(numNotes) {
-    for (var i = 0; i < numNotes; i++) {
+    for (let i = 0; i < numNotes; i++) {
       playNoteRandomly(100, 200 * i);
     }
   }
@@ -100,20 +110,20 @@ const ComfyJazz = (options = {}) => {
   ////////////////////////////////
 
   function semitonesToPlaybackRate(t) {
-    var e = Math.pow(2, 1 / 12);
+    const e = Math.pow(2, 1 / 12);
     return Math.pow(e, t);
   }
 
-  function shiftSource( tone, startRange, endRange ) {
-  	let a = startRange
-  	  , u = endRange
-  	  , c = new WeakMap;
+  function shiftSource(tone, startRange, endRange) {
+    let a = startRange,
+      u = endRange,
+      c = new WeakMap();
 
-  	// var e = c.get( tone );
-  	// if( e ) return e;
-  	let n = a + Math.random() * ( u - a );
-  	// c.set( tone, n );
-  	return n;
+    // var e = c.get( tone );
+    // if( e ) return e;
+    let n = a + Math.random() * (u - a);
+    // c.set( tone, n );
+    return n;
   }
 
   function playBackgroundSound(url, volume = 1, rate = 1) {
@@ -142,13 +152,16 @@ const ComfyJazz = (options = {}) => {
       });
       a.rate(rate);
       a.play();
-      a.fade( volume, 0.0, 1000 );//a.duration() * 500 );
+      a.fade(volume, 0.0, 1000); //a.duration() * 500 );
       cj.lastSound = a;
     });
   }
 
   function getNextNote() {
-    if (performance.now() - lastNoteTime > 900 || this.noteCount > this.maxnNotesPerPattern) {
+    if (
+      performance.now() - lastNoteTime > 900 ||
+      this.noteCount > this.maxNNotesPerPattern
+    ) {
       changePattern();
       noteCount = 0;
     }
@@ -166,11 +179,13 @@ const ComfyJazz = (options = {}) => {
       n = scaleifyNote(n, e.targetNotes);
     }
 
-    var a = n || 48,
-      s = null;
-    s = notes.filter((x) => x.metaData.startRange <= a && a <= x.metaData.endRange)[0];
-	// NOTE: OOPS THIS MIGHT BE THE WRONG SPOT FOR SHIFTSOURCE
-	// let shifted = shiftSource( s.metaData.root, s.metaData.startRange, s.metaData.endRange );
+    let a = n || 48;
+    let s = null;
+    s = notes.filter(
+      (x) => x.metaData.startRange <= a && a <= x.metaData.endRange
+    )[0];
+    // NOTE: OOPS THIS MIGHT BE THE WRONG SPOT FOR SHIFTSOURCE
+    // let shifted = shiftSource( s.metaData.root, s.metaData.startRange, s.metaData.endRange );
     let c = a - s.metaData.root;
     let playbackRate = semitonesToPlaybackRate(c);
     // console.log("playback", c, playbackRate);
@@ -212,22 +227,24 @@ const ComfyJazz = (options = {}) => {
   }
 
   function scaleifyNote(t, e) {
-    var n = ((t % 12) + 5) % 12;
+    const n = ((t % 12) + 5) % 12;
     if (
       void 0 ==
       e.filter(function (t) {
         return t === n;
       })[0]
     ) {
-      var r = getClosestTarget(e, t),
-        o = (t -= n - r);
+      const r = getClosestTarget(e, t);
+      let o = (t -= n - r);
       t = o += scales[scale][((o % 12) + 5) % 12];
     }
     return t;
   }
 
   function getNoteFromSemitone(tone) {
-    return notes.filter((x) => x.metaData.startRange <= tone && tone <= x.metaData.endRange)[0];
+    return notes.filter(
+      (x) => x.metaData.startRange <= tone && tone <= x.metaData.endRange
+    )[0];
   }
 
   let currentScaleProgression = 0;
@@ -240,7 +257,7 @@ const ComfyJazz = (options = {}) => {
   let lastNoteTime = 0;
   let lastNoteNumber = 0;
   let noteCount = 0;
-  const maxnNotesPerPattern = 30;
+  const maxNNotesPerPattern = 30;
 
   const scaleProgression = [
     {
@@ -328,97 +345,41 @@ const ComfyJazz = (options = {}) => {
   };
 
   const patterns = [
-    [71, 72, 69, 71, 67, 69, 64, 67, 62, 64, 62, 60, 59, 60, 62, 64, 65, 67, 69, 71, 67, 64, 62, 60, 59, 60, 57, 59, 55],
+    [
+      71, 72, 69, 71, 67, 69, 64, 67, 62, 64, 62, 60, 59, 60, 62, 64, 65, 67,
+      69, 71, 67, 64, 62, 60, 59, 60, 57, 59, 55,
+    ],
     [83, 88, 86, 81, 79, 83, 81, 76, 74, 79, 76, 72, 71, 72, 69, 67],
-    [74, 72, 70, 69, 70, 67, 69, 65, 67, 62, 65, 63, 67, 70, 74, 77, 74, 77, 74, 72, 70, 69, 70, 67, 69, 65],
-    [69, 74, 72, 67, 64, 69, 67, 62, 60, 64, 62, 57, 55, 60, 57, 53, 55, 57, 60, 62, 64, 65, 67, 62, 65, 64, 62, 64, 62, 60, 59],
     [
-      59,
-      60,
-      64,
-      67,
-      71,
-      72,
-      76,
-      79,
-      83,
-      84,
-      88,
-      91,
-      95,
-      98,
-      95,
-      98,
-      95,
-      91,
-      88,
-      91,
-      88,
-      84,
-      83,
-      86,
-      83,
-      79,
-      76,
-      79,
-      76,
-      72,
-      71,
-      74,
-      71,
-      67,
-      64,
-      67,
-      64,
-      60,
-      59,
-      55,
+      74, 72, 70, 69, 70, 67, 69, 65, 67, 62, 65, 63, 67, 70, 74, 77, 74, 77,
+      74, 72, 70, 69, 70, 67, 69, 65,
     ],
-    [91, 86, 88, 84, 83, 86, 83, 79, 76, 79, 76, 72, 71, 74, 71, 67, 64, 67, 64, 60, 59, 60, 64, 67, 71, 72, 74, 76, 79, 74, 76, 71, 72, 67],
-    [67, 65, 64, 65, 69, 72, 76, 79, 77, 76, 74, 76, 72, 71, 74, 71, 72, 67, 64, 67, 62, 60],
     [
-      65,
-      67,
-      65,
-      64,
-      65,
-      67,
-      69,
-      71,
-      72,
-      74,
-      76,
-      77,
-      79,
-      81,
-      83,
-      84,
-      86,
-      88,
-      89,
-      91,
-      93,
-      91,
-      88,
-      86,
-      88,
-      86,
-      84,
-      83,
-      84,
-      79,
-      81,
-      76,
-      79,
-      74,
-      76,
-      72,
-      71,
-      71,
-      72,
-      67,
+      69, 74, 72, 67, 64, 69, 67, 62, 60, 64, 62, 57, 55, 60, 57, 53, 55, 57,
+      60, 62, 64, 65, 67, 62, 65, 64, 62, 64, 62, 60, 59,
     ],
-    [55, 59, 60, 62, 67, 71, 72, 76, 79, 83, 86, 88, 93, 91, 88, 84, 81, 79, 77, 76, 74, 72, 71],
+    [
+      59, 60, 64, 67, 71, 72, 76, 79, 83, 84, 88, 91, 95, 98, 95, 98, 95, 91,
+      88, 91, 88, 84, 83, 86, 83, 79, 76, 79, 76, 72, 71, 74, 71, 67, 64, 67,
+      64, 60, 59, 55,
+    ],
+    [
+      91, 86, 88, 84, 83, 86, 83, 79, 76, 79, 76, 72, 71, 74, 71, 67, 64, 67,
+      64, 60, 59, 60, 64, 67, 71, 72, 74, 76, 79, 74, 76, 71, 72, 67,
+    ],
+    [
+      67, 65, 64, 65, 69, 72, 76, 79, 77, 76, 74, 76, 72, 71, 74, 71, 72, 67,
+      64, 67, 62, 60,
+    ],
+    [
+      65, 67, 65, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81, 83, 84, 86, 88,
+      89, 91, 93, 91, 88, 86, 88, 86, 84, 83, 84, 79, 81, 76, 79, 74, 76, 72,
+      71, 71, 72, 67,
+    ],
+    [
+      55, 59, 60, 62, 67, 71, 72, 76, 79, 83, 86, 88, 93, 91, 88, 84, 81, 79,
+      77, 76, 74, 72, 71,
+    ],
   ];
 
   const notes = [
@@ -473,25 +434,25 @@ const ComfyJazz = (options = {}) => {
     {
       url: "note_77",
       metaData: {
-        root: 78,
-        startRange: 77,
-        endRange: 79,
+        root: 77,
+        startRange: 76,
+        endRange: 78,
       },
     },
     {
       url: "note_74",
       metaData: {
-        root: 75,
-        startRange: 74,
-        endRange: 76,
+        root: 74,
+        startRange: 73,
+        endRange: 75,
       },
     },
     {
       url: "note_71",
       metaData: {
-        root: 72,
-        startRange: 71,
-        endRange: 73,
+        root: 71,
+        startRange: 70,
+        endRange: 72,
       },
     },
     {
@@ -562,3 +523,5 @@ const ComfyJazz = (options = {}) => {
 
   return cj;
 };
+
+export default ComfyJazz;
