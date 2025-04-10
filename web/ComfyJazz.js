@@ -1,22 +1,25 @@
-//dependent on Howler.js https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.0/howler.min.js
+// Library dependencies:
+// - Howler.js: Required for audio playback with pitch control
+// - See: https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.0/howler.min.js
 
 const ComfyJazz = (options = {}) => {
-  //Default property values, can be passed in and overridden
+  // Default configuration - can be overridden via options parameter
   const defaultOptions = {
-    baseUrl: "web/sounds",
-    instrument: "piano",
-    autoNotesDelay: 300, //how often should we try to play notes?
-    autoNotesChance: 0.2, //what % (0-1) chance is there to play an auto note?
-    playAutoNotes: true, //should we automatically play notes?
-    backgroundLoopUrl: "jazz_loop.ogg",
-    backgroundLoopDuration: 27.428,
-    volume: 1,
+    baseUrl: "web/sounds", // Base directory for sound files
+    instrument: "piano", // Instrument folder to use for notes
+    autoNotesDelay: 300, // Milliseconds between auto-note checks
+    autoNotesChance: 0.2, // Probability (0-1) of playing an auto note
+    playAutoNotes: true, // Whether to automatically play notes
+    backgroundLoopUrl: "jazz_loop.ogg", // Background music filename
+    backgroundLoopDuration: 27.428, // Duration of background loop in seconds
+    volume: 1, // Initial volume (0-1)
   };
 
   const cj = { ...defaultOptions, ...options };
 
   /////////////////////
-  //ComfyJazz Methods
+  // Public ComfyJazz Methods
+  /////////////////////
 
   cj.setVolume = (vol) => {
     cj.volume = vol;
@@ -38,22 +41,24 @@ const ComfyJazz = (options = {}) => {
   cj.playNote = playNoteRandomly;
 
   /////////////////////
+  // Core Functionality
+  /////////////////////
 
   async function startComfyJazz() {
     let startTime = performance.now();
 
-    //initial start of the background music
-    playBackgroundSound(`${cj.baseUrl}/${cj.backgroundLoopUrl}`, cj.volume, 1); //1.0594630943592953
+    // Start the background music loop
+    playBackgroundSound(`${cj.baseUrl}/${cj.backgroundLoopUrl}`, cj.volume, 1);
 
-    //this will Automatically play a note and then call itself again after a delay
+    // This function will automatically play notes and schedule itself to run again
     const AutomaticPlayNote = async () => {
       let currentTime = (performance.now() - startTime) / 1000;
 
+      // If we've reached the end of the background loop, restart it
       if (currentTime > cj.backgroundLoopDuration) {
         startTime = performance.now();
         currentTime = 0;
 
-        // play the background music again
         playBackgroundSound(
           `${cj.baseUrl}/${cj.backgroundLoopUrl}`,
           cj.volume,
@@ -61,6 +66,7 @@ const ComfyJazz = (options = {}) => {
         );
       }
 
+      // Update currentScaleProgression based on current position in the background loop
       for (let i = 0; i < scaleProgression.length; i++) {
         if (
           scaleProgression[i].start <= currentTime &&
@@ -71,20 +77,20 @@ const ComfyJazz = (options = {}) => {
         }
       }
 
-      //play a note 20% of the time
+      // Randomly play notes based on configured chance
       if (cj.playAutoNotes && Math.random() < cj.autoNotesChance) {
         playNoteRandomly(0, 200);
       }
 
-      //here's what will loop
+      // Schedule next run
       setTimeout(AutomaticPlayNote, cj.autoNotesDelay);
     };
 
-    //start the Automatic Note Player loop
+    // Start the automatic note player loop
     AutomaticPlayNote();
   }
 
-  //Play a note with possible random delay
+  // Play a note with a random delay within the specified range
   async function playNoteRandomly(minRandom = 0, maxRandom = 200) {
     setTimeout(async () => {
       let sound = getNextNote();
@@ -98,7 +104,7 @@ const ComfyJazz = (options = {}) => {
     }, minRandom + Math.random() * maxRandom);
   }
 
-  //Play a progression of notes, with random delay spacing!
+  // Play multiple notes with progressively increasing delays
   function playNoteProgression(numNotes) {
     for (let i = 0; i < numNotes; i++) {
       playNoteRandomly(100, 200 * i);
@@ -106,26 +112,26 @@ const ComfyJazz = (options = {}) => {
   }
 
   ////////////////////////////////
-  //The fancy music playing functions
+  // Music Theory & Audio Functions
   ////////////////////////////////
 
+  // Convert semitone difference to playback rate multiplier
   function semitonesToPlaybackRate(t) {
     const e = Math.pow(2, 1 / 12);
     return Math.pow(e, t);
   }
 
+  // Get a random value between startRange and endRange
   function shiftSource(tone, startRange, endRange) {
     let a = startRange,
       u = endRange,
       c = new WeakMap();
 
-    // var e = c.get( tone );
-    // if( e ) return e;
     let n = a + Math.random() * (u - a);
-    // c.set( tone, n );
     return n;
   }
 
+  // Play the background loop with the specified volume and rate
   function playBackgroundSound(url, volume = 1, rate = 1) {
     return new Promise((resolve, reject) => {
       let a = new Howl({
@@ -141,6 +147,7 @@ const ComfyJazz = (options = {}) => {
     });
   }
 
+  // Play a note with the specified volume and rate, with a fade-out effect
   function playSound(url, volume = 1, rate = 1) {
     return new Promise((resolve, reject) => {
       let a = new Howl({
@@ -152,11 +159,12 @@ const ComfyJazz = (options = {}) => {
       });
       a.rate(rate);
       a.play();
-      a.fade(volume, 0.0, 1000); //a.duration() * 500 );
+      a.fade(volume, 0.0, 1000); // Fade out over 1 second
       cj.lastSound = a;
     });
   }
 
+  // Select the next note to play based on current musical context
   function getNextNote() {
     if (
       performance.now() - lastNoteTime > 900 ||
@@ -173,8 +181,6 @@ const ComfyJazz = (options = {}) => {
       n = getNote(scale);
     }
 
-    // console.log(currentScaleProgression, pattern, scale);
-
     if (e.root !== lastRoot) {
       n = scaleifyNote(n, e.targetNotes);
     }
@@ -184,11 +190,9 @@ const ComfyJazz = (options = {}) => {
     s = notes.filter(
       (x) => x.metaData.startRange <= a && a <= x.metaData.endRange
     )[0];
-    // NOTE: OOPS THIS MIGHT BE THE WRONG SPOT FOR SHIFTSOURCE
-    // let shifted = shiftSource( s.metaData.root, s.metaData.startRange, s.metaData.endRange );
+
     let c = a - s.metaData.root;
     let playbackRate = semitonesToPlaybackRate(c);
-    // console.log("playback", c, playbackRate);
     let playNote = s;
     playNote.playbackRate = playbackRate;
 
@@ -199,8 +203,8 @@ const ComfyJazz = (options = {}) => {
     return playNote;
   }
 
+  // Get a note from the current pattern adjusted for the current scale
   function getNote(scale) {
-    // scale.length || (scale = e.scalesToUse[Math.floor(Math.random() * e.scalesToUse.length)]),
     if (pattern < 0) {
       changePattern();
     }
@@ -211,21 +215,25 @@ const ComfyJazz = (options = {}) => {
     return r;
   }
 
+  // Get a random integer between 0 (inclusive) and number (exclusive)
   function getRandomInt(number) {
     return Math.floor(number * Math.random());
   }
 
+  // Select a new random pattern and reset currentStep
   function changePattern() {
     pattern = getRandomInt(patterns.length);
     currentStep = 0;
   }
 
+  // Find the closest target value to a given value
   function getClosestTarget(t, e) {
     return t.reduce(function (t, n) {
       return Math.abs(n - e) < Math.abs(t - e) ? n : t;
     });
   }
 
+  // Adjust a note to fit within the current musical scale
   function scaleifyNote(t, e) {
     const n = ((t % 12) + 5) % 12;
     if (
@@ -241,12 +249,14 @@ const ComfyJazz = (options = {}) => {
     return t;
   }
 
+  // Find the note object for a given semitone value
   function getNoteFromSemitone(tone) {
     return notes.filter(
       (x) => x.metaData.startRange <= tone && tone <= x.metaData.endRange
     )[0];
   }
 
+  // Musical state variables
   let currentScaleProgression = 0;
   let root = 0;
   let lastRoot = undefined;
@@ -259,6 +269,7 @@ const ComfyJazz = (options = {}) => {
   let noteCount = 0;
   const maxNNotesPerPattern = 30;
 
+  // Scale progression defines the musical parameters for each segment of the background loop
   const scaleProgression = [
     {
       start: 0,
