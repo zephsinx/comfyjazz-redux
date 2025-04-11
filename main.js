@@ -1,4 +1,10 @@
 import ComfyJazz from './web/comfyjazz.js';
+import { Howl, Howler } from 'howler';
+import ComfyJS from 'comfy.js';
+
+// Make Howler available globally for comfyjazz.js to use
+window.Howl = Howl;
+window.Howler = Howler;
 
 const params = new URLSearchParams(location.search);
 
