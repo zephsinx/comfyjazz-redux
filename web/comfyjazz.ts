@@ -86,7 +86,7 @@ const ComfyJazz = (options: ComfyJazzOptions = {}): ComfyJazzInstance => {
      * @param vol The desired volume (0.0 to 1.0).
      */
     setVolume: (vol: number): void => {
-      cj.volume = vol;
+    cj.volume = vol;
       config.volume = vol;
       cj.backgroundSound?.volume(vol);
       cj.lastSound?.volume(vol);
@@ -397,8 +397,8 @@ const ComfyJazz = (options: ComfyJazzOptions = {}): ComfyJazzInstance => {
       (closestValue: number, currentValue: number): number => {
         return Math.abs(currentValue - sourceValue) <
           Math.abs(closestValue - sourceValue)
-          ? currentValue
-          : closestValue;
+        ? currentValue 
+        : closestValue;
       }
     );
   }
