@@ -8,10 +8,57 @@
 		<script type="module" src="/main.ts"></script>
 	</head>
 	<body>
-		<div id="comfy-controls" class="hide">
-			<h1>Comfy Jazz Control Panel</h1>
-			<label for="volumeSlider">Volume:</label>
-			<input type="range" id="volumeSlider" min="0" max="1" step="0.05">
+		<div id="comfy-controls" class="control-panel hide">
+			<div class="panel-header">
+				<h2>Comfy Jazz Controls</h2>
+				<button id="close-controls-btn" class="close-btn" aria-label="Close controls panel">&times;</button>
+			</div>
+
+			<div class="control-group">
+				<label for="instrumentSelect">Instrument:</label>
+				<select id="instrumentSelect">
+					<option value="piano">Piano</option>
+					<option value="vibraphone">Vibraphone</option>
+					<option value="twinkle">Twinkle</option>
+					<option value="sax">Sax</option>
+					<option value="sax2">Sax 2</option>
+					<option value="harp">Harp</option>
+					<option value="guzheng">Guzheng</option>
+					<option value="guitar">Guitar</option>
+					<option value="clarinet">Clarinet</option>
+				</select>
+			</div>
+
+			<div class="control-group">
+				<label for="volumeSlider">Volume: <span id="volumeValueSpan" class="slider-value"></span></label>
+				<input type="range" id="volumeSlider" min="0" max="1" step="0.05">
+			</div>
+
+			<div class="control-group">
+				<label for="transposeSlider">Pitch Shift (Semitones): <span id="transposeValueSpan" class="slider-value"></span></label>
+				<input type="range" id="transposeSlider" min="-12" max="12" step="1" value="-5">
+			</div>
+
+			<fieldset class="control-group">
+				<legend>Automatic Notes</legend>
+				<div>
+					<input type="checkbox" id="playAutoNotesCheckbox">
+					<label for="playAutoNotesCheckbox">Play Automatically</label>
+				</div>
+				<div>
+					<label for="autoNotesChanceSlider">Chance: <span id="autoNotesChanceValueSpan" class="slider-value"></span></label>
+					<input type="range" id="autoNotesChanceSlider" min="0" max="1" step="0.05">
+				</div>
+				<div>
+					<label for="autoNotesDelaySlider">Delay (ms): <span id="autoNotesDelayValueSpan" class="slider-value"></span></label>
+					<input type="range" id="autoNotesDelaySlider" min="50" max="1000" step="50">
+				</div>
+			</fieldset>
+
+			<!-- Add Reset Button -->
+			<div class="control-group reset-group">
+				<button id="resetSettingsBtn" class="reset-btn">Reset to Defaults</button>
+			</div>
 		</div>
 	</body>
 </html>

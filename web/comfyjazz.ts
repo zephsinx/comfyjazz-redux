@@ -20,6 +20,7 @@ export interface ComfyJazzOptions {
   backgroundLoopUrl?: string;
   backgroundLoopDuration?: number;
   volume?: number;
+  transpose?: number;
 }
 
 // Represents the data structure returned by selectNextNote
@@ -36,6 +37,7 @@ export interface ComfyJazzInstance {
   backgroundLoopUrl: string;
   backgroundLoopDuration: number;
   volume: number;
+  transpose: number;
   backgroundSound?: Howl | null;
   lastSound?: Howl | null;
 
@@ -53,6 +55,18 @@ export interface ComfyJazzInstance {
   playNoteProgression: (numNotes: number) => void;
   /** Plays a single random note with a random delay. */
   playNote: (minRandom?: number, maxRandom?: number) => Promise<void>;
+
+  // --- Add new setters ---
+  /** Sets the instrument(s) to use for playing notes. */
+  setInstrument: (instrument: string) => void;
+  /** Enables or disables the automatic playing of notes. */
+  setPlayAutoNotes: (play: boolean) => void;
+  /** Sets the probability (0-1) of an automatic note playing during a check cycle. */
+  setAutoNotesChance: (chance: number) => void;
+  /** Sets the delay (in ms) between automatic note playing checks. */
+  setAutoNotesDelay: (delay: number) => void;
+  /** Sets the overall pitch transposition in semitones. */
+  setTranspose: (semitones: number) => void;
 }
 
 /**
@@ -71,6 +85,7 @@ const ComfyJazz = (options: ComfyJazzOptions = {}): ComfyJazzInstance => {
     backgroundLoopUrl: "jazz_loop.ogg",
     backgroundLoopDuration: 27.428,
     volume: 1,
+    transpose: -5,
   };
 
   // Merge options first
@@ -81,15 +96,14 @@ const ComfyJazz = (options: ComfyJazzOptions = {}): ComfyJazzInstance => {
     backgroundSound: null,
     lastSound: null,
 
-    /**
-     * Sets the playback volume.
-     * @param vol The desired volume (0.0 to 1.0).
-     */
+    /** Sets the playback volume. */
     setVolume: (vol: number): void => {
-    cj.volume = vol;
-      config.volume = vol;
-      cj.backgroundSound?.volume(vol);
-      cj.lastSound?.volume(vol);
+      // Clamp volume between 0 and 1
+      const clampedVol = Math.max(0, Math.min(1, vol));
+      cj.volume = clampedVol;
+      config.volume = clampedVol; // Keep config in sync if needed elsewhere
+      cj.backgroundSound?.volume(clampedVol);
+      cj.lastSound?.volume(clampedVol);
     },
     /** Mutes the audio. */
     mute: (): void => {
@@ -97,6 +111,7 @@ const ComfyJazz = (options: ComfyJazzOptions = {}): ComfyJazzInstance => {
     },
     /** Unmutes the audio. */
     unmute: (): void => {
+      // Use the potentially modified config volume upon unmute
       cj.setVolume(config.volume);
     },
     /** Checks if audio is muted. */
@@ -107,6 +122,47 @@ const ComfyJazz = (options: ComfyJazzOptions = {}): ComfyJazzInstance => {
     playNoteProgression: playSequentialNotesWithDelays,
     /** Plays a single note. */
     playNote: playNoteWithRandomDelay,
+
+    // --- Implement new setters ---
+    /** Sets the instrument string. */
+    setInstrument: (instrumentName: string): void => {
+      // Basic validation: ensure it's a non-empty string
+      if (typeof instrumentName === 'string' && instrumentName.trim().length > 0) {
+         cj.instrument = instrumentName.trim();
+      } else {
+        console.warn(`Invalid instrument name provided: ${instrumentName}. Using previous: ${cj.instrument}`);
+      }
+    },
+    /** Toggles automatic note playing. */
+    setPlayAutoNotes: (play: boolean): void => {
+      cj.playAutoNotes = !!play; // Ensure boolean value
+    },
+    /** Sets the chance for automatic notes. */
+    setAutoNotesChance: (chance: number): void => {
+       // Clamp value between 0 and 1
+      if (typeof chance === 'number' && !isNaN(chance)) {
+         cj.autoNotesChance = Math.max(0, Math.min(1, chance));
+      } else {
+         console.warn(`Invalid autoNotesChance provided: ${chance}. Using previous: ${cj.autoNotesChance}`);
+      }
+    },
+    /** Sets the delay between automatic note checks. */
+    setAutoNotesDelay: (delay: number): void => {
+      // Ensure positive integer delay, minimum 50ms
+      if (typeof delay === 'number' && !isNaN(delay) && delay >= 0) {
+         cj.autoNotesDelay = Math.max(50, Math.round(delay)); // Ensure minimum delay and integer
+      } else {
+         console.warn(`Invalid autoNotesDelay provided: ${delay}. Using previous: ${cj.autoNotesDelay}`);
+      }
+    },
+    /** Sets the pitch transposition. */
+    setTranspose: (semitones: number): void => {
+      if (typeof semitones === 'number' && !isNaN(semitones)) {
+        cj.transpose = Math.round(semitones); // Store as integer semitones
+      } else {
+        console.warn(`Invalid transpose value provided: ${semitones}. Using previous: ${cj.transpose}`);
+      }
+    }
   };
 
   /////////////////////
@@ -363,7 +419,7 @@ const ComfyJazz = (options: ComfyJazzOptions = {}): ComfyJazzInstance => {
     const patternNote: number = patterns[pattern][currentStep];
     const scaleAdjustment: number = scales[currentScale][patternNote % 12];
     const scaleAdjustedNote: number = patternNote + scaleAdjustment;
-    const transposedNote: number = transpose + scaleAdjustedNote;
+    const transposedNote: number = cj.transpose + scaleAdjustedNote;
     currentStep = (currentStep + 1) % patterns[pattern].length; // Move to the next step in the pattern
     return transposedNote;
   }
@@ -446,7 +502,6 @@ const ComfyJazz = (options: ComfyJazzOptions = {}): ComfyJazzInstance => {
   let lastRoot: number | undefined = undefined;
   let pattern: number = -1;
   let scale: ScaleName = ScaleName.Custom;
-  let transpose: number = -5;
   let currentStep: number = 0;
   let lastNoteTime: number = 0;
   let lastNoteNumber: number = 0;
