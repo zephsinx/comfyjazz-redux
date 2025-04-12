@@ -37,8 +37,8 @@ const ComfyJazz = (options = {}) => {
   cj.isMuted = () => cj.volume <= 0;
   cj.start = () => startComfyJazz();
 
-  cj.playNoteProgression = playNoteProgression;
-  cj.playNote = playNoteRandomly;
+  cj.playNoteProgression = playSequentialNotesWithDelays;
+  cj.playNote = playNoteWithRandomDelay;
 
   /////////////////////
   // Core Functionality
@@ -79,7 +79,7 @@ const ComfyJazz = (options = {}) => {
 
       // Randomly play notes based on configured chance
       if (cj.playAutoNotes && Math.random() < cj.autoNotesChance) {
-        playNoteRandomly(0, 200);
+        playNoteWithRandomDelay(0, 200);
       }
 
       // Schedule next run
@@ -91,12 +91,12 @@ const ComfyJazz = (options = {}) => {
   }
 
   // Play a note with a random delay within the specified range
-  async function playNoteRandomly(minRandom = 0, maxRandom = 200) {
+  async function playNoteWithRandomDelay(minRandom = 0, maxRandom = 200) {
     setTimeout(async () => {
-      let sound = getNextNote();
+      let sound = selectNextNote();
       const instruments = cj.instrument.split(",").map((x) => x.trim());
       let instrument = instruments[getRandomInt(instruments.length)];
-      await playSound(
+      await playNoteSound(
         `${cj.baseUrl}/${instrument}/${sound.url}.ogg`,
         cj.volume,
         sound.playbackRate
@@ -105,9 +105,9 @@ const ComfyJazz = (options = {}) => {
   }
 
   // Play multiple notes with progressively increasing delays
-  function playNoteProgression(numNotes) {
+  function playSequentialNotesWithDelays(numNotes) {
     for (let i = 0; i < numNotes; i++) {
-      playNoteRandomly(100, 200 * i);
+      playNoteWithRandomDelay(100, 200 * i);
     }
   }
 
@@ -116,56 +116,56 @@ const ComfyJazz = (options = {}) => {
   ////////////////////////////////
 
   // Convert semitone difference to playback rate multiplier
-  function semitonesToPlaybackRate(t) {
-    const e = Math.pow(2, 1 / 12);
-    return Math.pow(e, t);
+  function semitonesToPlaybackRate(semitones) {
+    const semitoneRatio = Math.pow(2, 1 / 12);
+    return Math.pow(semitoneRatio, semitones);
   }
 
   // Get a random value between startRange and endRange
-  function shiftSource(tone, startRange, endRange) {
-    let a = startRange,
-      u = endRange,
-      c = new WeakMap();
+  function getRandomValueInRange(_tone, startRange, endRange) {
+    let minValue = startRange,
+        maxValue = endRange,
+        cache = new WeakMap();
 
-    let n = a + Math.random() * (u - a);
-    return n;
+    let randomValue = minValue + Math.random() * (maxValue - minValue);
+    return randomValue;
   }
 
   // Play the background loop with the specified volume and rate
   function playBackgroundSound(url, volume = 1, rate = 1) {
-    return new Promise((resolve, reject) => {
-      let a = new Howl({
+    return new Promise((resolve, _reject) => {
+      let backgroundSound = new Howl({
         src: [url],
         volume: volume,
         onend: function () {
           resolve();
         },
       });
-      a.rate(rate);
-      a.play();
-      cj.backgroundSound = a;
+      backgroundSound.rate(rate);
+      backgroundSound.play();
+      cj.backgroundSound = backgroundSound;
     });
   }
 
   // Play a note with the specified volume and rate, with a fade-out effect
-  function playSound(url, volume = 1, rate = 1) {
-    return new Promise((resolve, reject) => {
-      let a = new Howl({
+  function playNoteSound(url, volume = 1, rate = 1) {
+    return new Promise((resolve, _reject) => {
+      let noteSound = new Howl({
         src: [url],
         volume: volume,
         onend: function () {
           resolve();
         },
       });
-      a.rate(rate);
-      a.play();
-      a.fade(volume, 0.0, 1000); // Fade out over 1 second
-      cj.lastSound = a;
+      noteSound.rate(rate);
+      noteSound.play();
+      noteSound.fade(volume, 0.0, 1000); // Fade out over 1 second
+      cj.lastSound = noteSound;
     });
   }
 
   // Select the next note to play based on current musical context
-  function getNextNote() {
+  function selectNextNote() {
     if (
       performance.now() - lastNoteTime > 900 ||
       noteCount > maxNNotesPerPattern
@@ -174,45 +174,45 @@ const ComfyJazz = (options = {}) => {
       noteCount = 0;
     }
 
-    let e = scaleProgression[currentScaleProgression];
-    scale = e.scale;
-    let n = getNote(scale);
-    while (n === lastNoteNumber) {
-      n = getNote(scale);
+    let progression = scaleProgression[currentScaleProgression];
+    scale = progression.scale;
+    let noteNumber = getScaleAdjustedPatternNote(scale);
+    while (noteNumber === lastNoteNumber) {
+      noteNumber = getScaleAdjustedPatternNote(scale);
     }
 
-    if (e.root !== lastRoot) {
-      n = scaleifyNote(n, e.targetNotes);
+    if (progression.root !== lastRoot) {
+      noteNumber = adjustNoteToScale(noteNumber, progression.targetNotes);
     }
 
-    let a = n || 48;
-    let s = null;
-    s = notes.filter(
-      (x) => x.metaData.startRange <= a && a <= x.metaData.endRange
+    let midiNote = noteNumber || 48;
+    let soundData = null;
+    soundData = notes.filter(
+      (x) => x.metaData.startRange <= midiNote && midiNote <= x.metaData.endRange
     )[0];
 
-    let c = a - s.metaData.root;
-    let playbackRate = semitonesToPlaybackRate(c);
-    let playNote = s;
+    let semitoneOffset = midiNote - soundData.metaData.root;
+    let playbackRate = semitonesToPlaybackRate(semitoneOffset);
+    let playNote = soundData;
     playNote.playbackRate = playbackRate;
 
     noteCount++;
     lastNoteTime = performance.now();
-    lastNoteNumber = n;
-    lastRoot = e.root;
+    lastNoteNumber = noteNumber;
+    lastRoot = progression.root;
     return playNote;
   }
 
   // Get a note from the current pattern adjusted for the current scale
-  function getNote(scale) {
+  function getScaleAdjustedPatternNote(scale) {
     if (pattern < 0) {
       changePattern();
     }
-    let t = patterns[pattern][currentStep];
-    let n = t + scales[scale][t % 12];
-    let r = transpose + n;
+    let patternNote = patterns[pattern][currentStep];
+    let scaleAdjustedNote = patternNote + scales[scale][patternNote % 12];
+    let transposedNote = transpose + scaleAdjustedNote;
     currentStep = (currentStep + 1) % patterns[pattern].length;
-    return r;
+    return transposedNote;
   }
 
   // Get a random integer between 0 (inclusive) and number (exclusive)
@@ -227,26 +227,28 @@ const ComfyJazz = (options = {}) => {
   }
 
   // Find the closest target value to a given value
-  function getClosestTarget(t, e) {
-    return t.reduce(function (t, n) {
-      return Math.abs(n - e) < Math.abs(t - e) ? n : t;
+  function getClosestTarget(targetArray, sourceValue) {
+    return targetArray.reduce(function (closestValue, currentValue) {
+      return Math.abs(currentValue - sourceValue) < Math.abs(closestValue - sourceValue) 
+        ? currentValue 
+        : closestValue;
     });
   }
 
   // Adjust a note to fit within the current musical scale
-  function scaleifyNote(t, e) {
-    const n = ((t % 12) + 5) % 12;
+  function adjustNoteToScale(noteValue, targetNotes) {
+    const noteIndex = ((noteValue % 12) + 5) % 12;
     if (
       void 0 ==
-      e.filter(function (t) {
-        return t === n;
+      targetNotes.filter(function (targetValue) {
+        return targetValue === noteIndex;
       })[0]
     ) {
-      const r = getClosestTarget(e, t);
-      let o = (t -= n - r);
-      t = o += scales[scale][((o % 12) + 5) % 12];
+      const closestTarget = getClosestTarget(targetNotes, noteValue);
+      let adjustedNote = (noteValue -= noteIndex - closestTarget);
+      noteValue = adjustedNote += scales[scale][((adjustedNote % 12) + 5) % 12];
     }
-    return t;
+    return noteValue;
   }
 
   // Find the note object for a given semitone value
