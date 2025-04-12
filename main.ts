@@ -19,7 +19,7 @@ if (volumeParam !== null) {
 // Type the options object
 const comfyJazzOptions: ComfyJazzOptions = {
   autoNotesChance: 0.3,
-  instrument: instrument ?? "piano", // Use nullish coalescing
+  instrument: instrument ?? "piano",
   volume: volume,
 };
 
