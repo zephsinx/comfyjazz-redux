@@ -1,8 +1,8 @@
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  // Base public path when served in development or production
-  base: "./",
+  // Base path should match your repository name for GitHub Pages
+  base: '/comfyjazz-redux/',
 
   // Development server configuration
   server: {
@@ -16,5 +16,6 @@ export default defineConfig({
     outDir: "dist", // Output directory for production build
     assetsDir: "assets", // Directory for static assets
     emptyOutDir: true, // Clean the output directory before build
+    sourcemap: true,
   },
 });
