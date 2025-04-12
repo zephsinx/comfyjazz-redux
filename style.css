@@ -1,0 +1,146 @@
+#comfy-controls {
+  padding: 40px;
+  background-color: #ccc;
+  display: block;
+}
+
+#comfy-controls.hide {
+  display: none;
+}
+
+/* Existing .hide style */
+.hide {
+  display: none;
+}
+
+/* Basic Panel Styling */
+.control-panel {
+  position: fixed; /* Or absolute, depending on needs */
+  top: 20px;
+  left: 20px;
+  background-color: #f0f0f0;
+  padding: 15px 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  z-index: 1000; /* Ensure it's above other content */
+  min-width: 300px; /* Adjust as needed */
+  color: #333;
+  font-family: sans-serif; /* Add a default font */
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 10px;
+}
+
+.panel-header h2 {
+  margin: 0;
+  font-size: 1.2em;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5em;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 5px;
+  color: #888;
+}
+.close-btn:hover {
+  color: #333;
+}
+
+/* Control Grouping */
+.control-group {
+  margin-bottom: 15px;
+}
+
+.control-group label,
+fieldset legend {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  font-size: 0.9em;
+}
+
+/* Form Element Styling */
+input[type="range"],
+select,
+input[type="checkbox"] {
+  vertical-align: middle; /* Align checkbox nicely */
+  margin-right: 5px; /* Add some space next to checkbox */
+}
+
+input[type="range"] {
+  width: calc(100% - 10px); /* Adjust width slightly */
+}
+
+select {
+  width: 100%;
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box; /* Include padding in width */
+}
+
+fieldset {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 10px 15px;
+}
+
+fieldset legend {
+  padding: 0 5px; /* Spacing around legend text */
+  margin-left: 10px; /* Indent legend slightly */
+}
+
+fieldset > div {
+  margin-bottom: 10px; /* Space between controls in fieldset */
+}
+fieldset > div:last-child {
+  margin-bottom: 0;
+}
+
+/* Specific style for the checkbox label to be inline */
+label[for="playAutoNotesCheckbox"] {
+  display: inline-block; /* Override display: block */
+  margin-bottom: 0; /* Remove space below */
+  font-weight: normal; /* Optional: make it less bold */
+}
+
+.slider-value {
+  display: inline-block; /* Keeps it on the same line */
+  min-width: 3em; /* Provides some space for the value */
+  text-align: right; /* Align value to the right */
+  font-weight: normal; /* Keep value text normal weight */
+  margin-left: 5px;
+  background-color: #e0e0e0; /* Slightly different background */
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+.reset-group {
+  margin-top: 20px; /* Add some space above the button */
+  text-align: center; /* Center the button */
+}
+
+.reset-btn {
+  padding: 8px 15px;
+  background-color: #6c757d; /* A neutral grey */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+
+.reset-btn:hover {
+  background-color: #5a6268;
+}
