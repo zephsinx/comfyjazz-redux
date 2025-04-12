@@ -1,5 +1,4 @@
 import { defineConfig } from "vite";
-import { viteStaticCopy } from "vite-plugin-static-copy";
 
 export default defineConfig({
   // Base public path when served in development or production
@@ -18,18 +17,4 @@ export default defineConfig({
     assetsDir: "assets", // Directory for static assets
     emptyOutDir: true, // Clean the output directory before build
   },
-
-  // Plugins
-  plugins: [
-    // Copy the static files to the dist directory
-    viteStaticCopy({
-      targets: [
-        {
-          src: "web/sounds",
-          dest: "web",
-          recursive: true,
-        },
-      ],
-    }),
-  ],
 });

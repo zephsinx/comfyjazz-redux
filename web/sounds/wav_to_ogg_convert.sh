@@ -1,1 +1,0 @@
-for i in *.wav; do ffmpeg -i "$i" -filter:a "volume=0.10" -acodec libvorbis "${i%}.ogg"; done
