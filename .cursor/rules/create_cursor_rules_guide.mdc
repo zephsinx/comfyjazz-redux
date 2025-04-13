@@ -14,23 +14,23 @@ alwaysApply: false
 All Cursor rules MUST have YAML frontmatter containing `description`, `globs`, and `alwaysApply` fields. Configure these fields **exactly** according to the intended rule type (determined from user request or rule purpose):
 
 *   **`Always` Rules:**
-    *   `description:`
-    *   `globs:`
+    *   `description: `
+    *   `globs: `
     *   `alwaysApply: true`
 
 *   **`Auto Attached` Rules:**
-    *   `description:`
+    *   `description: `
     *   `globs: ["**/pattern1/*.ts", "**/pattern2/*.js"]` (Use specific patterns)
     *   `alwaysApply: false`
 
 *   **`Agent Requested` Rules:**
     *   `description: "USE WHEN [Concise, keyword-rich summary (max ~120 chars)]"` (Must start with 'USE WHEN')
-    *   `globs:`
+    *   `globs: `
     *   `alwaysApply: false`
 
 *   **`Manual` Rules:**
-    *   `description:`
-    *   `globs:`
+    *   `description: `
+    *   `globs: `
     *   `alwaysApply: false`
 
 ## 2. Rule Body Best Practices

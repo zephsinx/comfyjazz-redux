@@ -1,21 +1,25 @@
 ---
-description: 
-globs: 
+description:
+globs:
 alwaysApply: true
 ---
-# AI code editing rules for clean code and comments
+# AI Code Cleanliness and Commenting Rules
 
-**AI Assistant Instructions:** When editing or generating code, strictly adhere to the following:
+**AI Assistant Instructions:** When proposing code edits or generating new code, strictly adhere to the following:
 
-1. **Delete, Don't Comment Out:** AI Assistant MUST delete unused or replaced code entirely. NEVER leave old code commented out in the final proposed code change. **If unsure whether code is truly unused (e.g., potential side effects, complex interactions), ask for clarification before deleting.**
+1.  **Delete, Don't Comment Out:** AI Assistant MUST delete unused or replaced code entirely. NEVER leave old code commented out in the final proposed code change. **If unsure whether code is truly unused (e.g., potential side effects, complex interactions), ask for clarification before deleting.**
 
-2. **Comment Purposefully (Explain Why, Not What):**
-    * AI Assistant comments MUST focus on explaining the *reasoning* behind complex logic, non-obvious decisions, or potential edge cases/consequences.
-    * NEVER add comments that merely describe *what* the code does if its function is clear from the code itself (e.g., naming, standard patterns). **If unsure whether a comment explaining 'what' is necessary for clarity in a specific complex situation, err on the side of omitting it or ask for guidance.**
-    * NEVER add meta-comments describing the edit action itself (e.g., "// Refactored this", "// Fixed bug", "// Added CSS rule"). The commit message serves this purpose.
+2.  **Comment Purposefully (Explain ONLY Why, Not What):**
+    *   Comments MUST focus **exclusively** on explaining the *reasoning* ('why') behind complex logic, non-obvious decisions, or potential edge cases/consequences.
+    *   NEVER add comments that describe *what* the code does, even for organizational purposes (e.g., `// Get references`, `/* Styling for X */`). Rely on clear code structure, function/variable naming instead. **If unsure whether a comment explaining 'why' is needed, ask for guidance.**
+    *   NEVER add meta-comments describing the edit action itself (e.g., "// Refactored this", "// Added CSS rule").
 
-3. **Ensure Readability:** While adhering to the above, ensure the final code (including necessary comments explaining the 'why') is clear and understandable for human developers. Prioritize self-documenting code through clear naming and logic.
+3.  **Ensure Readability:** Prioritize self-documenting code through clear naming and logic. Ensure any necessary 'why' comments enhance clarity for human developers.
 
-4. **Clean Up:** Remove TODOs or placeholder comments when the corresponding task is completed.
+4.  **Clean Up:** Remove TODOs or placeholder comments when the corresponding task is completed.
 
-**Goal:** The final code produced by the AI should be clean, free of commented-out legacy code, and contain only comments that add essential context for future readers, not comments explaining the edit process. **Efficiency is gained by avoiding unnecessary comments and legacy code, but correctness (not deleting vital code or omitting critical explanations) takes precedence; seek clarification when deletion or commenting decisions are ambiguous.** 
+5.  **Final Review:** Before submitting the code change proposal, AI Assistant MUST perform a final review pass on the generated/edited code specifically to:
+    *   Confirm **all** commented-out legacy/replaced code has been deleted (Rule #1).
+    *   Confirm **all** comments describing 'what' the code does or the edit itself have been removed (Rule #2).
+
+**Goal:** The final code produced by the AI should be clean, free of commented-out legacy code, and contain only comments that add essential context ('why'). **Efficiency is gained by avoiding unnecessary comments and legacy code, but correctness takes precedence; seek clarification when deletion or commenting decisions are ambiguous.** 
