@@ -4,9 +4,6 @@ import {
   ScaleProgressionItem,
   NoteItem,
   scaleProgression,
-  scales,
-  patterns,
-  notes,
 } from "./comfyjazz-constants";
 
 // --- Interfaces ---
@@ -25,6 +22,12 @@ export interface ComfyJazzOptions {
 
 // Represents the data structure returned by selectNextNote
 interface SoundData extends NoteItem {
+  playbackRate: number;
+}
+
+// Represents the data structure received from the worker
+interface WorkerSoundData {
+  url: string;
   playbackRate: number;
 }
 
@@ -69,16 +72,131 @@ export interface ComfyJazzInstance {
   setTranspose: (semitones: number) => void;
 }
 
-// Cache for Howl instances
+// --- Global Audio Cache & State ---
 const noteSoundCache = new Map<string, Howl>();
+let globalInstanceRef: ComfyJazzInstance | null = null; // Reference to the current instance for context
+
+// --- Audio Playback Functions (Module Scope) ---
 
 /**
- * Creates a ComfyJazz instance for playing procedurally generated jazz music.
- * @param options Optional configuration to override defaults.
- * @returns A ComfyJazzInstance object with methods to control playback.
+ * Plays a single note sound using Howler, with caching and fade-out effect.
+ * @param url The URL of the audio file.
+ * @param volume Playback volume (0.0 to 1.0).
+ * @param rate Playback rate multiplier.
+ * @returns A Promise that resolves when the sound finishes playing and fading.
  */
+function playNoteSound(
+  url: string,
+  volume: number = 1,
+  rate: number = 1
+): Promise<void> {
+  return new Promise<void>((resolve, _reject) => {
+    let noteSound: Howl | undefined = noteSoundCache.get(url);
+
+    if (noteSound) {
+      // Reuse cached sound
+      noteSound.volume(volume);
+      noteSound.rate(rate);
+      noteSound.seek(0); // Restart sound if playing
+      noteSound.play();
+      noteSound.fade(volume, 0.0, 1000); // Apply fade
+      if (globalInstanceRef) globalInstanceRef.lastSound = noteSound;
+      resolve();
+    } else {
+      // Create and cache new sound
+      noteSound = new Howl({
+        src: [url],
+        volume: volume,
+        rate: rate,
+        onend: function () {
+          resolve();
+        },
+        onloaderror: function (_id, err) {
+          console.error(`Error loading sound ${url}:`, err);
+          noteSoundCache.delete(url); // Remove from cache on error
+          resolve(); // Resolve anyway to not block execution
+        },
+        onplayerror: function (_id, err) {
+          console.error(`Error playing sound ${url}:`, err);
+          resolve(); // Resolve anyway
+        }
+      });
+      noteSoundCache.set(url, noteSound);
+      noteSound.play();
+      noteSound.fade(volume, 0.0, 1000); // Apply fade
+      if (globalInstanceRef) globalInstanceRef.lastSound = noteSound;
+    }
+  });
+}
+
+/**
+ * Plays the background sound loop using Howler.
+ */
+function playBackgroundSound(
+  url: string,
+  volume: number = 1,
+  rate: number = 1
+): Promise<void> {
+    return new Promise<void>((resolve, _reject) => {
+      // Stop and unload previous background sound if it exists
+      globalInstanceRef?.backgroundSound?.stop();
+      globalInstanceRef?.backgroundSound?.unload();
+
+      const backgroundSound = new Howl({
+        src: [url],
+        volume: volume,
+        rate: rate, // Apply rate
+        loop: true, // Ensure it loops
+        onend: function () { // Should not trigger if loop: true, but good practice
+          resolve();
+        },
+        onloaderror: function (_id, err) {
+          console.error(`Error loading background sound ${url}:`, err);
+          resolve();
+        },
+        onplayerror: function (_id, err) {
+           console.error(`Error playing background sound ${url}:`, err);
+           resolve();
+        }
+      });
+      // backgroundSound.rate(rate); // Rate set in constructor now
+      backgroundSound.play();
+      if (globalInstanceRef) globalInstanceRef.backgroundSound = backgroundSound;
+    });
+  }
+
+
+// --- Worker Setup ---
+let noteWorker: Worker | null = null;
+if (window.Worker) {
+  noteWorker = new Worker(new URL('./note-worker.ts', import.meta.url), {
+    type: 'module'
+  });
+  console.log("Note worker created.");
+
+  noteWorker.onmessage = (event: MessageEvent<WorkerSoundData>) => {
+    const { url, playbackRate } = event.data;
+    if (url && playbackRate && globalInstanceRef) { // Check globalInstanceRef
+      const instrument = globalInstanceRef.instrument.split(",").map(x => x.trim())[0] || 'piano';
+      const baseUrl = globalInstanceRef.baseUrl || 'web/sounds';
+      const fullUrl = `${baseUrl}/${instrument}/${url}.ogg`;
+      const volume = globalInstanceRef.volume ?? 1;
+      playNoteSound(fullUrl, volume, playbackRate); // Call module-scoped function
+    } else {
+      console.error("Main thread received invalid data from worker or instance not ready:", event.data);
+    }
+  };
+
+  noteWorker.onerror = (error) => {
+    console.error("Error in note worker:", error);
+  };
+
+} else {
+  console.error("Web Workers are not supported in this browser.");
+}
+
+// --- ComfyJazz Factory Function ---
 const ComfyJazz = (options: ComfyJazzOptions = {}): ComfyJazzInstance => {
-  // Default configuration
   const defaultOptions = {
     baseUrl: "web/sounds",
     instrument: "piano",
@@ -90,8 +208,6 @@ const ComfyJazz = (options: ComfyJazzOptions = {}): ComfyJazzInstance => {
     volume: 1,
     transpose: -5,
   };
-
-  // Merge options first
   const config = { ...defaultOptions, ...options };
 
   const cj: ComfyJazzInstance = {
@@ -99,83 +215,60 @@ const ComfyJazz = (options: ComfyJazzOptions = {}): ComfyJazzInstance => {
     backgroundSound: null,
     lastSound: null,
 
-    /** Sets the playback volume. */
     setVolume: (vol: number): void => {
-      // Clamp volume between 0 and 1
       const clampedVol = Math.max(0, Math.min(1, vol));
       cj.volume = clampedVol;
-      config.volume = clampedVol; // Keep config in sync if needed elsewhere
+      config.volume = clampedVol;
       cj.backgroundSound?.volume(clampedVol);
-      cj.lastSound?.volume(clampedVol);
+      // Note: Volume for note sounds is applied in playNoteSound
     },
-    /** Mutes the audio. */
     mute: (): void => {
       cj.setVolume(0);
     },
-    /** Unmutes the audio. */
     unmute: (): void => {
-      // Use the potentially modified config volume upon unmute
       cj.setVolume(config.volume);
     },
-    /** Checks if audio is muted. */
     isMuted: (): boolean => cj.volume <= 0,
-    /** Starts the main ComfyJazz loop. */
     start: startComfyJazz,
-    /** Plays a sequence of notes. */
     playNoteProgression: playSequentialNotesWithDelays,
-    /** Plays a single note. */
     playNote: playNoteWithRandomDelay,
 
-    // --- Implement new setters ---
-    /** Sets the instrument string and clears the cache. */
     setInstrument: (instrumentName: string): void => {
-      if (
-        typeof instrumentName === "string" &&
-        instrumentName.trim().length > 0
-      ) {
-        const newInstrument = instrumentName.trim();
-        if (newInstrument !== cj.instrument) {
-          // Clear the cache when instrument changes
-          noteSoundCache.forEach((sound) => sound.unload());
-          noteSoundCache.clear();
-          cj.instrument = newInstrument;
+        if (typeof instrumentName === 'string' && instrumentName.trim().length > 0) {
+            const newInstrument = instrumentName.trim();
+            if (newInstrument !== cj.instrument) {
+                noteSoundCache.forEach((sound) => sound.unload());
+                noteSoundCache.clear();
+                cj.instrument = newInstrument;
+            }
+        } else {
+            console.warn(
+                `Invalid instrument name provided: ${instrumentName}. Using previous: ${cj.instrument}`
+            );
         }
-      } else {
-        console.warn(
-          `Invalid instrument name provided: ${instrumentName}. Using previous: ${cj.instrument}`
-        );
-      }
     },
-    /** Toggles automatic note playing. */
     setPlayAutoNotes: (play: boolean): void => {
-      cj.playAutoNotes = !!play; // Ensure boolean value
+      cj.playAutoNotes = !!play;
     },
-    /** Sets the chance for automatic notes. */
     setAutoNotesChance: (chance: number): void => {
-      // Clamp value between 0 and 1
-      if (typeof chance === "number" && !isNaN(chance)) {
-        cj.autoNotesChance = Math.max(0, Math.min(1, chance));
+      if (typeof chance === 'number' && !isNaN(chance)) {
+         cj.autoNotesChance = Math.max(0, Math.min(1, chance));
       } else {
-        console.warn(
-          `Invalid autoNotesChance provided: ${chance}. Using previous: ${cj.autoNotesChance}`
-        );
+         console.warn(`Invalid autoNotesChance provided: ${chance}. Using previous: ${cj.autoNotesChance}`);
       }
     },
-    /** Sets the delay between automatic note checks. */
     setAutoNotesDelay: (delay: number): void => {
-      // Ensure positive integer delay, minimum 50ms
-      if (typeof delay === "number" && !isNaN(delay) && delay >= 0) {
-        cj.autoNotesDelay = Math.max(50, Math.round(delay)); // Ensure minimum delay and integer
+      if (typeof delay === 'number' && !isNaN(delay) && delay >= 0) {
+         cj.autoNotesDelay = Math.max(50, Math.round(delay));
       } else {
-        console.warn(
-          `Invalid autoNotesDelay provided: ${delay}. Using previous: ${cj.autoNotesDelay}`
-        );
+         console.warn(`Invalid autoNotesDelay provided: ${delay}. Using previous: ${cj.autoNotesDelay}`);
       }
     },
-    /** Sets the pitch transposition. */
     setTranspose: (semitones: number): void => {
-      if (typeof semitones === "number" && !isNaN(semitones)) {
-        cj.transpose = Math.round(semitones); // Store as integer semitones
+      if (typeof semitones === 'number' && !isNaN(semitones)) {
+        const newTranspose = Math.round(semitones);
+        cj.transpose = newTranspose;
+        noteWorker?.postMessage({ type: "setState", payload: { transpose: newTranspose } });
       } else {
         console.warn(
           `Invalid transpose value provided: ${semitones}. Using previous: ${cj.transpose}`
@@ -184,42 +277,50 @@ const ComfyJazz = (options: ComfyJazzOptions = {}): ComfyJazzInstance => {
     },
   };
 
-  /////////////////////
-  // Core Functionality
-  /////////////////////
+  globalInstanceRef = cj; // Update the global reference when a new instance is created
 
-  /**
-   * Initializes the background music loop and starts the automatic note player.
-   */
+  // --- State and Functions within Instance Scope ---
+  let currentScaleProgression: number = 0;
+
   async function startComfyJazz(): Promise<void> {
-    let startTime: number = performance.now();
+    noteWorker?.postMessage({ type: "setState", payload: { transpose: cj.transpose } });
 
+    // let startTime: number = performance.now(); // startTime no longer needed for loop logic
+    // Use module-scoped playBackgroundSound - it will loop automatically
     playBackgroundSound(`${cj.baseUrl}/${cj.backgroundLoopUrl}`, cj.volume, 1);
 
-    /** Handles the loop for playing automatic notes and restarting background music. */
     const AutomaticPlayNote = async (): Promise<void> => {
-      let currentTime: number = (performance.now() - startTime) / 1000;
-
-      if (currentTime > cj.backgroundLoopDuration) {
-        startTime = performance.now();
-        currentTime = 0;
-        playBackgroundSound(
-          `${cj.baseUrl}/${cj.backgroundLoopUrl}`,
-          cj.volume,
-          1
-        );
+      // Determine current scale progression index based on elapsed time within the loop
+      // We still need a way to track time relative to *something* if scaleProgression depends on it.
+      // Let's use the Howler instance's seek time if available.
+      const bgSound = globalInstanceRef?.backgroundSound;
+      let currentTime = 0;
+      if (bgSound && bgSound.playing()) {
+          currentTime = bgSound.seek() as number; // Get current playback position
+      } else {
+          // Fallback or initial state if sound isn't playing yet
+          // This part might need refinement depending on desired behavior before loop starts
+          currentTime = (performance.now() % (cj.backgroundLoopDuration * 1000)) / 1000;
       }
 
+      // Determine current scale progression index
+      let foundProgression = false;
       for (let i = 0; i < scaleProgression.length; i++) {
         if (
           scaleProgression[i].start <= currentTime &&
           currentTime <= scaleProgression[i].end
         ) {
           currentScaleProgression = i;
+          foundProgression = true;
           break;
         }
       }
+      if (!foundProgression) {
+          // If seek time is beyond the last progression end, loop back or default
+          currentScaleProgression = 0; 
+      }
 
+      // Request note from worker if auto-play enabled
       if (cj.playAutoNotes && Math.random() < cj.autoNotesChance) {
         playNoteWithRandomDelay(0, 200);
       }
@@ -230,328 +331,28 @@ const ComfyJazz = (options: ComfyJazzOptions = {}): ComfyJazzInstance => {
     AutomaticPlayNote();
   }
 
-  /**
-   * Selects the next note based on musical context and plays it after a random delay.
-   * @param minRandom Minimum delay in milliseconds.
-   * @param maxRandom Maximum additional random delay in milliseconds.
-   */
   async function playNoteWithRandomDelay(
     minRandom: number = 0,
     maxRandom: number = 200
   ): Promise<void> {
-    setTimeout(async () => {
-      const sound: SoundData = selectNextNote();
-      const instruments: string[] = cj.instrument
-        .split(",")
-        .map((x: string) => x.trim());
-      const instrument: string = instruments[getRandomInt(instruments.length)];
-      await playNoteSound(
-        `${cj.baseUrl}/${instrument}/${sound.url}.ogg`,
-        cj.volume,
-        sound.playbackRate
-      );
+    setTimeout(() => {
+        if (!noteWorker) {
+            console.error("Note worker not available.");
+            return;
+        }
+        noteWorker.postMessage({ 
+            type: "generateNote", 
+            // Send current progression index to worker
+            payload: { currentScaleProgression: currentScaleProgression } 
+        });
     }, minRandom + Math.random() * maxRandom);
   }
 
-  /**
-   * Plays a specified number of notes sequentially with increasing random delays.
-   * @param numNotes The number of notes to play.
-   */
   function playSequentialNotesWithDelays(numNotes: number): void {
     for (let i = 0; i < numNotes; i++) {
       playNoteWithRandomDelay(100, 200 * i);
     }
   }
-
-  ////////////////////////////////
-  // Music Theory & Audio Functions
-  ////////////////////////////////
-
-  /**
-   * Converts a difference in semitones to a playback rate multiplier for Howler.
-   * @param semitones The number of semitones difference.
-   * @returns The playback rate multiplier.
-   */
-  function semitonesToPlaybackRate(semitones: number): number {
-    const semitoneRatio: number = Math.pow(2, 1 / 12);
-    return Math.pow(semitoneRatio, semitones);
-  }
-
-  /**
-   * Generates a random floating-point number within a specified range.
-   * Note: The `_tone` parameter is currently unused.
-   * @param _tone Unused parameter.
-   * @param startRange The minimum value (inclusive).
-   * @param endRange The maximum value (exclusive).
-   * @returns A random number within the range.
-   */
-  function getRandomValueInRange(
-    _tone: number,
-    startRange: number,
-    endRange: number
-  ): number {
-    const minValue: number = startRange;
-    const maxValue: number = endRange;
-    const randomValue: number =
-      minValue + Math.random() * (maxValue - minValue);
-    return randomValue;
-  }
-
-  /**
-   * Plays the background sound loop using Howler.
-   * @param url The URL of the audio file.
-   * @param volume Playback volume (0.0 to 1.0).
-   * @param rate Playback rate multiplier.
-   * @returns A Promise that resolves when the sound finishes playing (though loops might prevent this).
-   */
-  function playBackgroundSound(
-    url: string,
-    volume: number = 1,
-    rate: number = 1
-  ): Promise<void> {
-    return new Promise<void>((resolve, _reject) => {
-      const backgroundSound = new Howl({
-        src: [url],
-        volume: volume,
-        onend: function () {
-          resolve();
-        },
-      });
-      backgroundSound.rate(rate);
-      backgroundSound.play();
-      cj.backgroundSound = backgroundSound;
-    });
-  }
-
-  /**
-   * Plays a single note sound using Howler, with caching and fade-out effect.
-   * @param url The URL of the audio file.
-   * @param volume Playback volume (0.0 to 1.0).
-   * @param rate Playback rate multiplier.
-   * @returns A Promise that resolves when the sound finishes playing and fading.
-   */
-  function playNoteSound(
-    url: string,
-    volume: number = 1,
-    rate: number = 1
-  ): Promise<void> {
-    return new Promise<void>((resolve, _reject) => {
-      let noteSound: Howl | undefined = noteSoundCache.get(url);
-
-      if (noteSound) {
-        // Reuse cached sound
-        noteSound.volume(volume);
-        noteSound.rate(rate);
-        noteSound.seek(0); // Restart sound if playing
-        noteSound.play();
-        noteSound.fade(volume, 0.0, 1000); // Apply fade
-        cj.lastSound = noteSound;
-        // Resolve immediately since the sound object exists
-        // Howler handles multiple plays, but we might want more control later
-        resolve();
-      } else {
-        // Create and cache new sound
-        noteSound = new Howl({
-          src: [url],
-          volume: volume,
-          rate: rate,
-          onend: function () {
-            resolve();
-          },
-          onloaderror: function (id, err) {
-            console.error(`Error loading sound ${url}:`, err);
-            noteSoundCache.delete(url); // Remove from cache on error
-            resolve(); // Resolve anyway to not block execution
-          },
-          onplayerror: function (id, err) {
-            console.error(`Error playing sound ${url}:`, err);
-            resolve(); // Resolve anyway
-          },
-        });
-        noteSoundCache.set(url, noteSound);
-        noteSound.play();
-        noteSound.fade(volume, 0.0, 1000); // Apply fade
-        cj.lastSound = noteSound;
-      }
-    });
-  }
-
-  /**
-   * Selects the next note to play based on the current musical pattern, scale, and progression.
-   * Handles pattern changes and ensures notes fit the target scale.
-   * @returns A SoundData object containing the note URL and calculated playback rate.
-   */
-  function selectNextNote(): SoundData {
-    // Check if it's time to change the melodic pattern
-    if (
-      performance.now() - lastNoteTime > 900 ||
-      noteCount > maxNNotesPerPattern
-    ) {
-      changePattern();
-      noteCount = 0;
-    }
-
-    // Get the current segment of the song structure
-    const progression: ScaleProgressionItem =
-      scaleProgression[currentScaleProgression];
-    scale = progression.scale; // Update the currently active scale
-
-    // Get the next note based on the pattern and adjust it for the scale
-    let noteNumber: number = getScaleAdjustedPatternNote(scale);
-
-    // Avoid repeating the exact same note number immediately
-    while (noteNumber === lastNoteNumber) {
-      noteNumber = getScaleAdjustedPatternNote(scale);
-    }
-
-    // If the root note of the progression segment has changed, adjust the note to fit target notes
-    if (progression.root !== lastRoot) {
-      noteNumber = adjustNoteToScale(noteNumber, progression.targetNotes);
-    }
-
-    // Default to MIDI note 48 if calculation somehow fails (unlikely)
-    const midiNote: number = noteNumber || 48;
-
-    // Find the corresponding audio sample data based on the MIDI note range
-    const soundDataBase: NoteItem | undefined = notes.find(
-      (note: NoteItem) =>
-        note.metaData.startRange <= midiNote &&
-        midiNote <= note.metaData.endRange
-    );
-
-    // Handle cases where no matching sample is found (e.g., out of range MIDI note)
-    if (!soundDataBase) {
-      console.error(
-        `Could not find note data for MIDI note: ${midiNote}. Using default.`
-      );
-      // Fallback to a default note (note_48 or the lowest note) to prevent errors
-      const defaultNote =
-        notes.find((n) => n.url === "note_48") || notes[notes.length - 1];
-      const semitoneOffset = midiNote - defaultNote.metaData.root;
-      return {
-        ...defaultNote,
-        playbackRate: semitonesToPlaybackRate(semitoneOffset),
-      };
-    }
-
-    // Calculate the pitch shift required for the sample
-    const semitoneOffset: number = midiNote - soundDataBase.metaData.root;
-    const playbackRate: number = semitonesToPlaybackRate(semitoneOffset);
-
-    // Combine sample data with calculated playback rate
-    const soundData: SoundData = {
-      ...soundDataBase,
-      playbackRate: playbackRate,
-    };
-
-    // Update state variables
-    noteCount++;
-    lastNoteTime = performance.now();
-    lastNoteNumber = noteNumber;
-    lastRoot = progression.root;
-    return soundData;
-  }
-
-  /**
-   * Gets a note number from the current pattern, adjusts it based on the scale, and transposes it.
-   * @param currentScale The scale currently active.
-   * @returns The calculated MIDI note number.
-   */
-  function getScaleAdjustedPatternNote(currentScale: ScaleName): number {
-    if (pattern < 0) {
-      changePattern(); // Ensure a pattern is selected
-    }
-    const patternNote: number = patterns[pattern][currentStep];
-    const scaleAdjustment: number = scales[currentScale][patternNote % 12];
-    const scaleAdjustedNote: number = patternNote + scaleAdjustment;
-    const transposedNote: number = cj.transpose + scaleAdjustedNote;
-    currentStep = (currentStep + 1) % patterns[pattern].length; // Move to the next step in the pattern
-    return transposedNote;
-  }
-
-  /**
-   * Generates a random integer between 0 (inclusive) and maxExclusive (exclusive).
-   * @param maxExclusive The upper bound (exclusive).
-   * @returns A random integer.
-   */
-  function getRandomInt(maxExclusive: number): number {
-    return Math.floor(maxExclusive * Math.random());
-  }
-
-  /** Selects a new random pattern index and resets the step counter. */
-  function changePattern(): void {
-    pattern = getRandomInt(patterns.length);
-    currentStep = 0;
-  }
-
-  /**
-   * Finds the value in a target array that is numerically closest to a source value.
-   * @param targetArray The array of numbers to search within.
-   * @param sourceValue The value to find the closest match for.
-   * @returns The value from the array closest to the source value.
-   */
-  function getClosestTarget(
-    targetArray: number[],
-    sourceValue: number
-  ): number {
-    return targetArray.reduce(
-      (closestValue: number, currentValue: number): number => {
-        return Math.abs(currentValue - sourceValue) <
-          Math.abs(closestValue - sourceValue)
-          ? currentValue
-          : closestValue;
-      }
-    );
-  }
-
-  /**
-   * Adjusts a given note value to fit within a set of target notes for the current scale,
-   * if it doesn't already align with one.
-   * @param noteValue The MIDI note number to adjust.
-   * @param targetNotes An array of target note indices (0-11) for the scale.
-   * @returns The adjusted MIDI note number.
-   */
-  function adjustNoteToScale(noteValue: number, targetNotes: number[]): number {
-    const noteIndex: number = ((noteValue % 12) + 5) % 12; // Normalize to 0-11 range relative to a root
-    // Check if the note's index is already one of the target notes
-    if (
-      targetNotes.find((targetValue: number) => targetValue === noteIndex) ===
-      undefined
-    ) {
-      // If not, find the closest target note index
-      const closestTarget: number = getClosestTarget(targetNotes, noteValue);
-      // Adjust the note towards the closest target
-      let adjustedNote: number = noteValue - (noteIndex - closestTarget);
-      // Apply the scale adjustment based on the *new* adjusted note's position in the scale
-      const scaleAdjustment: number =
-        scales[scale][((adjustedNote % 12) + 5) % 12];
-      noteValue = adjustedNote + scaleAdjustment;
-    }
-    return noteValue;
-  }
-
-  /**
-   * Finds the NoteItem corresponding to a given MIDI tone number.
-   * @param tone The MIDI tone number.
-   * @returns The matching NoteItem, or undefined if not found.
-   */
-  function getNoteFromSemitone(tone: number): NoteItem | undefined {
-    return notes.find(
-      (note: NoteItem) =>
-        note.metaData.startRange <= tone && tone <= note.metaData.endRange
-    );
-  }
-
-  // --- Musical state variables ---
-  let currentScaleProgression: number = 0;
-  let lastRoot: number | undefined = undefined;
-  let pattern: number = -1;
-  let scale: ScaleName = ScaleName.Custom;
-  let currentStep: number = 0;
-  let lastNoteTime: number = 0;
-  let lastNoteNumber: number = 0;
-  let noteCount: number = 0;
-  const maxNNotesPerPattern: number = 30;
 
   return cj;
 };
