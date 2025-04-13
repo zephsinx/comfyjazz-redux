@@ -31,8 +31,14 @@ comfyJazz.start();
 // Get references to all control elements
 const controlsPanel = document.querySelector<HTMLDivElement>('#comfy-controls');
 const closeControlsBtn = document.querySelector<HTMLButtonElement>('#close-controls-btn');
-const instrumentCheckboxes = document.querySelectorAll<HTMLInputElement>('input[name="instrument"]');
-const instrumentCheckboxContainer = document.querySelector<HTMLDivElement>('.instrument-checkbox-container');
+
+// Instrument controls
+const toggleMultiInstrument = document.querySelector<HTMLInputElement>('#toggleMultiInstrument');
+const instrumentRadioContainer = document.querySelector<HTMLDivElement>('#instrumentRadioContainer');
+const instrumentCheckboxContainer = document.querySelector<HTMLDivElement>('#instrumentCheckboxContainer');
+const instrumentCheckboxes = document.querySelectorAll<HTMLInputElement>('input[name="instrumentMulti"]');
+
+// Other controls
 const volumeSlider = document.querySelector<HTMLInputElement>('#volumeSlider');
 const playAutoNotesCheckbox = document.querySelector<HTMLInputElement>('#playAutoNotesCheckbox');
 const autoNotesChanceSlider = document.querySelector<HTMLInputElement>('#autoNotesChanceSlider');
@@ -48,7 +54,7 @@ const transposeValueSpan = document.querySelector<HTMLSpanElement>('#transposeVa
 
 // --- Default Settings Object ---
 const defaultComfyJazzSettings = {
-  instrument: "piano",
+  instrument: "piano", // Default is single piano
   volume: 1,
   playAutoNotes: true,
   autoNotesChance: 0.2,
@@ -56,10 +62,39 @@ const defaultComfyJazzSettings = {
   transpose: -5
 };
 
+// Function to update instrument state based on current mode and selections
+function updateInstrumentState() {
+  if (!toggleMultiInstrument || !comfyJazz) return;
+
+  let instrumentString = "piano"; // Default
+
+  if (toggleMultiInstrument.checked) {
+    // Multi-select mode
+    const checkedInstruments = Array.from(instrumentCheckboxes)
+      .filter(checkbox => checkbox.checked)
+      .map(checkbox => checkbox.value);
+    instrumentString = checkedInstruments.join(",");
+    // Ensure at least one is checked in multi-mode
+    if (instrumentString.length === 0) {
+        instrumentString = defaultComfyJazzSettings.instrument; // Fallback to default
+        const defaultCheckbox = document.getElementById(`instr-check-${instrumentString}`) as HTMLInputElement | null;
+        if (defaultCheckbox) defaultCheckbox.checked = true;
+    }
+  } else {
+    // Single-select mode
+    const selectedRadio = document.querySelector<HTMLInputElement>('input[name="instrumentSingle"]:checked');
+    if (selectedRadio) {
+      instrumentString = selectedRadio.value;
+    }
+  }
+  comfyJazz.setInstrument(instrumentString);
+}
+
 // Function to initialize control values from comfyJazz state
 function initializeControls() {
-  if (!comfyJazz) return; // Guard against comfyJazz not being ready
+  if (!comfyJazz || !toggleMultiInstrument || !instrumentRadioContainer || !instrumentCheckboxContainer) return;
 
+  // --- Initialize other controls --- 
   if (volumeSlider) {
      volumeSlider.value = String(comfyJazz.volume);
      if (volumeValueSpan) volumeValueSpan.textContent = parseFloat(volumeSlider.value).toFixed(2); // Format volume
@@ -79,11 +114,40 @@ function initializeControls() {
     if (transposeValueSpan) transposeValueSpan.textContent = transposeSlider.value;
   }
 
-  // Initialize Instrument Checkboxes
-  const activeInstruments = comfyJazz.instrument.split(",").map(i => i.trim()).filter(Boolean);
-  instrumentCheckboxes.forEach(checkbox => {
-    checkbox.checked = activeInstruments.includes(checkbox.value);
-  });
+  // --- Initialize Instrument Controls --- 
+  // Determine initial mode based on whether instrument string contains commas
+  const isMultiMode = comfyJazz.instrument.includes(',');
+  toggleMultiInstrument.checked = isMultiMode;
+
+  if (isMultiMode) {
+    instrumentRadioContainer.classList.add('hide');
+    instrumentCheckboxContainer.classList.remove('hide');
+    // Initialize Checkboxes
+    const activeInstruments = comfyJazz.instrument.split(",").map(i => i.trim()).filter(Boolean);
+    instrumentCheckboxes.forEach(checkbox => {
+      checkbox.checked = activeInstruments.includes(checkbox.value);
+    });
+    // Ensure at least one is checked if loaded state was invalid multi-select
+    if (activeInstruments.length === 0) {
+        const defaultCheckbox = document.getElementById(`instr-check-${defaultComfyJazzSettings.instrument}`) as HTMLInputElement | null;
+        if (defaultCheckbox) defaultCheckbox.checked = true;
+        comfyJazz.setInstrument(defaultComfyJazzSettings.instrument); // Correct internal state too
+    }
+  } else {
+    instrumentRadioContainer.classList.remove('hide');
+    instrumentCheckboxContainer.classList.add('hide');
+    // Initialize Radio Buttons
+    const activeInstrument = comfyJazz.instrument.trim() || defaultComfyJazzSettings.instrument;
+    const radioToCheck = document.getElementById(`instr-radio-${activeInstrument}`) as HTMLInputElement | null;
+    if (radioToCheck) {
+        radioToCheck.checked = true;
+    } else { 
+        // Fallback if saved instrument isn't a valid radio option
+        const defaultRadio = document.getElementById(`instr-radio-${defaultComfyJazzSettings.instrument}`) as HTMLInputElement | null;
+        if (defaultRadio) defaultRadio.checked = true;
+        comfyJazz.setInstrument(defaultComfyJazzSettings.instrument); // Correct internal state too
+    }
+  }
 }
 
 // Initialize controls once the DOM is ready (or immediately if already loaded)
@@ -102,27 +166,53 @@ if (closeControlsBtn && controlsPanel) {
   });
 }
 
-// Add listener for Instrument Checkboxes (using event delegation on container)
+// Listener for the MULTI-INSTRUMENT TOGGLE checkbox
+if (toggleMultiInstrument && instrumentRadioContainer && instrumentCheckboxContainer) {
+    toggleMultiInstrument.addEventListener('change', () => {
+        const isMulti = toggleMultiInstrument.checked;
+        instrumentRadioContainer.classList.toggle('hide', isMulti);
+        instrumentCheckboxContainer.classList.toggle('hide', !isMulti);
+
+        if (isMulti) {
+            // Switching TO multi-select
+            // Check the box corresponding to the currently selected radio
+            const currentSingle = document.querySelector<HTMLInputElement>('input[name="instrumentSingle"]:checked')?.value || defaultComfyJazzSettings.instrument;
+            instrumentCheckboxes.forEach(cb => {
+                cb.checked = (cb.value === currentSingle);
+            });
+        } else {
+            // Switching TO single-select
+            // Select the radio corresponding to the FIRST checked box (or default)
+            const firstChecked = Array.from(instrumentCheckboxes).find(cb => cb.checked)?.value || defaultComfyJazzSettings.instrument;
+            const radioToSelect = document.getElementById(`instr-radio-${firstChecked}`) as HTMLInputElement | null;
+            if (radioToSelect) {
+                radioToSelect.checked = true;
+            } else {
+                // Fallback if first checked wasn't found (shouldn't happen often)
+                 const defaultRadio = document.getElementById(`instr-radio-${defaultComfyJazzSettings.instrument}`) as HTMLInputElement | null;
+                 if (defaultRadio) defaultRadio.checked = true;
+            }
+        }
+        // Update the instrument state after switching modes
+        updateInstrumentState();
+    });
+}
+
+// Listener for RADIO buttons (Single Select Mode)
+if (instrumentRadioContainer) {
+    instrumentRadioContainer.addEventListener('change', (e) => {
+        if (!toggleMultiInstrument?.checked && (e.target as HTMLInputElement).name === 'instrumentSingle') {
+            updateInstrumentState();
+        }
+    });
+}
+
+// Listener for CHECKBOXES (Multi Select Mode)
 if (instrumentCheckboxContainer) {
   instrumentCheckboxContainer.addEventListener('change', (e) => {
-    // Check if the event target is an instrument checkbox
-    if ((e.target as HTMLInputElement).name === 'instrument') {
-      const checkedInstruments = Array.from(instrumentCheckboxes)
-        .filter(checkbox => checkbox.checked)
-        .map(checkbox => checkbox.value);
-
-      let instrumentString = checkedInstruments.join(",");
-
-      // Ensure at least one instrument is selected (default to piano if none)
-      if (instrumentString.length === 0) {
-        instrumentString = "piano";
-        // Find the piano checkbox and check it visually
-        const pianoCheckbox = document.getElementById('instr-piano') as HTMLInputElement | null;
-        if (pianoCheckbox) pianoCheckbox.checked = true;
+      if (toggleMultiInstrument?.checked && (e.target as HTMLInputElement).name === 'instrumentMulti') {
+          updateInstrumentState();
       }
-
-      comfyJazz.setInstrument(instrumentString);
-    }
   });
 }
 
@@ -185,13 +275,22 @@ if (transposeSlider && transposeValueSpan) { // Ensure span exists
 // Reset Settings Button
 if (resetSettingsBtn) {
   resetSettingsBtn.addEventListener('click', () => {
-    // Set comfyJazz instance back to defaults
+    // Reset ALL comfyJazz internal state to defaults first
+    comfyJazz.setInstrument(defaultComfyJazzSettings.instrument);
+    comfyJazz.setVolume(defaultComfyJazzSettings.volume);
+    comfyJazz.setPlayAutoNotes(defaultComfyJazzSettings.playAutoNotes);
+    comfyJazz.setAutoNotesChance(defaultComfyJazzSettings.autoNotesChance);
+    comfyJazz.setAutoNotesDelay(defaultComfyJazzSettings.autoNotesDelay);
     comfyJazz.setTranspose(defaultComfyJazzSettings.transpose);
 
-    // Update the UI to reflect the defaults (this will reset checkboxes correctly)
+    // Now, update the entire UI based on the reset state
+    // initializeControls will correctly handle showing/hiding containers 
+    // and setting the correct radio/checkbox state based on the 
+    // now-reset comfyJazz.instrument value ("piano")
     initializeControls(); 
-    // Explicitly call setInstrument AFTER initializeControls has visually reset checkboxes
-    comfyJazz.setInstrument(defaultComfyJazzSettings.instrument);
+
+    // No need for manual UI manipulation here anymore
+    // No need to call setInstrument again here
   });
 }
 

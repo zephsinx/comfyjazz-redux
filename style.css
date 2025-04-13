@@ -231,3 +231,59 @@ label[for="playAutoNotesCheckbox"] {
     font-size: 0.9em; /* Match other control labels */
     cursor: pointer; /* Indicate labels are clickable */
 }
+
+/* Instrument Section Styling */
+.instrument-section legend {
+    margin-bottom: 8px;
+}
+
+.instrument-mode-toggle {
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+}
+
+.instrument-mode-toggle input[type="checkbox"] {
+    margin-right: 6px;
+}
+
+.instrument-mode-toggle label {
+    font-weight: normal;
+    font-size: 0.9em;
+    margin-bottom: 0;
+    cursor: pointer;
+}
+
+.instrument-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+    max-height: 150px;
+    overflow-y: auto;
+    padding: 5px;
+    background-color: #e8e8e8;
+    border-radius: 4px;
+}
+
+.instrument-container.hide {
+    display: none;
+}
+
+/* Styles for individual radio/checkbox items */
+.instrument-container div {
+    display: flex;
+    align-items: center;
+}
+
+.instrument-container input[type="radio"],
+.instrument-container input[type="checkbox"] {
+    margin-right: 6px;
+    cursor: pointer;
+}
+
+.instrument-container label {
+    font-weight: normal;
+    margin-bottom: 0;
+    font-size: 0.9em;
+    cursor: pointer;
+}
