@@ -69,6 +69,9 @@ export interface ComfyJazzInstance {
   setTranspose: (semitones: number) => void;
 }
 
+// Cache for Howl instances
+const noteSoundCache = new Map<string, Howl>();
+
 /**
  * Creates a ComfyJazz instance for playing procedurally generated jazz music.
  * @param options Optional configuration to override defaults.
@@ -124,13 +127,23 @@ const ComfyJazz = (options: ComfyJazzOptions = {}): ComfyJazzInstance => {
     playNote: playNoteWithRandomDelay,
 
     // --- Implement new setters ---
-    /** Sets the instrument string. */
+    /** Sets the instrument string and clears the cache. */
     setInstrument: (instrumentName: string): void => {
-      // Basic validation: ensure it's a non-empty string
-      if (typeof instrumentName === 'string' && instrumentName.trim().length > 0) {
-         cj.instrument = instrumentName.trim();
+      if (
+        typeof instrumentName === "string" &&
+        instrumentName.trim().length > 0
+      ) {
+        const newInstrument = instrumentName.trim();
+        if (newInstrument !== cj.instrument) {
+          // Clear the cache when instrument changes
+          noteSoundCache.forEach((sound) => sound.unload());
+          noteSoundCache.clear();
+          cj.instrument = newInstrument;
+        }
       } else {
-        console.warn(`Invalid instrument name provided: ${instrumentName}. Using previous: ${cj.instrument}`);
+        console.warn(
+          `Invalid instrument name provided: ${instrumentName}. Using previous: ${cj.instrument}`
+        );
       }
     },
     /** Toggles automatic note playing. */
@@ -139,30 +152,36 @@ const ComfyJazz = (options: ComfyJazzOptions = {}): ComfyJazzInstance => {
     },
     /** Sets the chance for automatic notes. */
     setAutoNotesChance: (chance: number): void => {
-       // Clamp value between 0 and 1
-      if (typeof chance === 'number' && !isNaN(chance)) {
-         cj.autoNotesChance = Math.max(0, Math.min(1, chance));
+      // Clamp value between 0 and 1
+      if (typeof chance === "number" && !isNaN(chance)) {
+        cj.autoNotesChance = Math.max(0, Math.min(1, chance));
       } else {
-         console.warn(`Invalid autoNotesChance provided: ${chance}. Using previous: ${cj.autoNotesChance}`);
+        console.warn(
+          `Invalid autoNotesChance provided: ${chance}. Using previous: ${cj.autoNotesChance}`
+        );
       }
     },
     /** Sets the delay between automatic note checks. */
     setAutoNotesDelay: (delay: number): void => {
       // Ensure positive integer delay, minimum 50ms
-      if (typeof delay === 'number' && !isNaN(delay) && delay >= 0) {
-         cj.autoNotesDelay = Math.max(50, Math.round(delay)); // Ensure minimum delay and integer
+      if (typeof delay === "number" && !isNaN(delay) && delay >= 0) {
+        cj.autoNotesDelay = Math.max(50, Math.round(delay)); // Ensure minimum delay and integer
       } else {
-         console.warn(`Invalid autoNotesDelay provided: ${delay}. Using previous: ${cj.autoNotesDelay}`);
+        console.warn(
+          `Invalid autoNotesDelay provided: ${delay}. Using previous: ${cj.autoNotesDelay}`
+        );
       }
     },
     /** Sets the pitch transposition. */
     setTranspose: (semitones: number): void => {
-      if (typeof semitones === 'number' && !isNaN(semitones)) {
+      if (typeof semitones === "number" && !isNaN(semitones)) {
         cj.transpose = Math.round(semitones); // Store as integer semitones
       } else {
-        console.warn(`Invalid transpose value provided: ${semitones}. Using previous: ${cj.transpose}`);
+        console.warn(
+          `Invalid transpose value provided: ${semitones}. Using previous: ${cj.transpose}`
+        );
       }
-    }
+    },
   };
 
   /////////////////////
@@ -305,7 +324,7 @@ const ComfyJazz = (options: ComfyJazzOptions = {}): ComfyJazzInstance => {
   }
 
   /**
-   * Plays a single note sound using Howler, with a fade-out effect.
+   * Plays a single note sound using Howler, with caching and fade-out effect.
    * @param url The URL of the audio file.
    * @param volume Playback volume (0.0 to 1.0).
    * @param rate Playback rate multiplier.
@@ -317,17 +336,43 @@ const ComfyJazz = (options: ComfyJazzOptions = {}): ComfyJazzInstance => {
     rate: number = 1
   ): Promise<void> {
     return new Promise<void>((resolve, _reject) => {
-      const noteSound = new Howl({
-        src: [url],
-        volume: volume,
-        onend: function () {
-          resolve();
-        },
-      });
-      noteSound.rate(rate);
-      noteSound.play();
-      noteSound.fade(volume, 0.0, 1000);
-      cj.lastSound = noteSound;
+      let noteSound: Howl | undefined = noteSoundCache.get(url);
+
+      if (noteSound) {
+        // Reuse cached sound
+        noteSound.volume(volume);
+        noteSound.rate(rate);
+        noteSound.seek(0); // Restart sound if playing
+        noteSound.play();
+        noteSound.fade(volume, 0.0, 1000); // Apply fade
+        cj.lastSound = noteSound;
+        // Resolve immediately since the sound object exists
+        // Howler handles multiple plays, but we might want more control later
+        resolve();
+      } else {
+        // Create and cache new sound
+        noteSound = new Howl({
+          src: [url],
+          volume: volume,
+          rate: rate,
+          onend: function () {
+            resolve();
+          },
+          onloaderror: function (id, err) {
+            console.error(`Error loading sound ${url}:`, err);
+            noteSoundCache.delete(url); // Remove from cache on error
+            resolve(); // Resolve anyway to not block execution
+          },
+          onplayerror: function (id, err) {
+            console.error(`Error playing sound ${url}:`, err);
+            resolve(); // Resolve anyway
+          },
+        });
+        noteSoundCache.set(url, noteSound);
+        noteSound.play();
+        noteSound.fade(volume, 0.0, 1000); // Apply fade
+        cj.lastSound = noteSound;
+      }
     });
   }
 
@@ -453,8 +498,8 @@ const ComfyJazz = (options: ComfyJazzOptions = {}): ComfyJazzInstance => {
       (closestValue: number, currentValue: number): number => {
         return Math.abs(currentValue - sourceValue) <
           Math.abs(closestValue - sourceValue)
-        ? currentValue 
-        : closestValue;
+          ? currentValue
+          : closestValue;
       }
     );
   }
