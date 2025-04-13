@@ -1,8 +1,7 @@
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  // Base path should match your repository name for GitHub Pages
-  base: '/comfyjazz-redux/',
+  base: '/',
 
   // Development server configuration
   server: {
