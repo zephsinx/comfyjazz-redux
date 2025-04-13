@@ -27,6 +27,11 @@
   min-width: 300px; /* Adjust as needed */
   color: #333;
   font-family: sans-serif; /* Add a default font */
+  /* Prevent text selection */
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 .panel-header {
@@ -143,4 +148,54 @@ label[for="playAutoNotesCheckbox"] {
 
 .reset-btn:hover {
   background-color: #5a6268;
+}
+
+/* Welcome Banner Styling */
+.banner {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 300px;
+  background-color: rgba(245, 245, 250, 0.9);
+  color: #555;
+  text-align: left;
+  padding: 12px 15px;
+  padding-right: 35px;
+  font-size: 0.85em;
+  font-family: "Segoe UI", Candara, "DejaVu Sans", "Bitstream Vera Sans", Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+  z-index: 1001;
+  opacity: 1;
+  transition: opacity 0.8s ease-out;
+  border-radius: 5px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.banner p {
+    margin: 0;
+}
+
+/* Style for the close button inside the banner */
+.banner-close-btn {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: none;
+  border: none;
+  font-size: 1.2em;
+  line-height: 1;
+  color: #777;
+  cursor: pointer;
+  padding: 5px;
+}
+
+.banner-close-btn:hover {
+  color: #333;
+}
+
+.banner.fade-out {
+  opacity: 0;
+}
+
+.banner.hide {
+  display: none;
 }

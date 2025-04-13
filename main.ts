@@ -212,3 +212,34 @@ window.addEventListener("keydown", (e: KeyboardEvent): void => {
   }
 });
 
+// --- Banner Logic ---
+const welcomeBanner = document.getElementById('welcome-banner');
+const closeBannerBtn = document.getElementById('close-banner-btn');
+
+// Use ReturnType to get the correct type for setTimeout in the environment
+let fadeTimeoutId: ReturnType<typeof setTimeout> | null = null;
+let hideTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+function dismissBanner() {
+    if (welcomeBanner) {
+        welcomeBanner.classList.add('hide'); // Hide immediately
+    }
+    // Clear scheduled timeouts if dismissed manually
+    if (fadeTimeoutId !== null) clearTimeout(fadeTimeoutId);
+    if (hideTimeoutId !== null) clearTimeout(hideTimeoutId);
+}
+
+if (welcomeBanner && closeBannerBtn) {
+    // Automatic dismissal
+    fadeTimeoutId = setTimeout(() => {
+        welcomeBanner.classList.add('fade-out');
+        hideTimeoutId = setTimeout(() => {
+            // Use dismissBanner to ensure cleanup
+            dismissBanner();
+        }, 800); // Match faster CSS transition
+    }, 4000); // Keep initial delay or adjust as needed
+
+    // Manual dismissal via button
+    closeBannerBtn.addEventListener('click', dismissBanner);
+}
+
