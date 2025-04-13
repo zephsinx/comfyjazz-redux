@@ -10,27 +10,108 @@
 </head>
 
 <body>
+	<div id="welcome-banner" class="banner">
+		<p>Welcome to ComfyJazz! Press 'C' to toggle controls</p>
+		<button id="close-banner-btn" class="banner-close-btn" aria-label="Dismiss welcome message">&times;</button>
+	</div>
 	<div id="comfy-controls" class="control-panel hide">
 		<div class="panel-header">
 			<h2>ComfyJazz Controls</h2>
 			<button id="close-controls-btn" class="close-btn" aria-label="Close controls panel">&times;</button>
 		</div>
 
-		<div class="control-group">
-			<label for="instrumentSelect">Instrument:</label>
-			<select id="instrumentSelect">
-				<option value="clarinet">Clarinet</option>
-				<option value="guitar">Guitar</option>
-				<option value="guzheng">Guzheng</option>
-				<option value="harp">Harp</option>
-				<option value="piano">Piano</option>
-				<option value="sax">Sax</option>
-				<option value="sax2">Sax 2</option>
-				<option value="twinkle">Twinkle</option>
-				<option value="vibraphone">Vibraphone</option>
-			</select>
-		</div>
+		<!-- Instrument Selection Area -->
+		<fieldset class="control-group instrument-section">
+			<legend>Instrument</legend>
+			<div class="instrument-mode-toggle">
+				 <input type="checkbox" id="toggleMultiInstrument">
+				 <label for="toggleMultiInstrument">Select Multiple Instruments</label>
+			</div>
 
+			<!-- Radio Button Container (Single Select - Default) -->
+			<div id="instrumentRadioContainer" class="instrument-container">
+				<!-- Radio buttons will be dynamically populated or listed here -->
+				 <div>
+					<input type="radio" id="instr-radio-piano" name="instrumentSingle" value="piano" checked>
+					<label for="instr-radio-piano">Piano</label>
+				 </div>
+				 <div>
+					<input type="radio" id="instr-radio-vibraphone" name="instrumentSingle" value="vibraphone">
+					<label for="instr-radio-vibraphone">Vibraphone</label>
+				 </div>
+				 <div>
+					<input type="radio" id="instr-radio-twinkle" name="instrumentSingle" value="twinkle">
+					<label for="instr-radio-twinkle">Twinkle</label>
+				 </div>
+				 <div>
+					<input type="radio" id="instr-radio-sax" name="instrumentSingle" value="sax">
+					<label for="instr-radio-sax">Sax</label>
+				 </div>
+				 <div>
+					<input type="radio" id="instr-radio-sax2" name="instrumentSingle" value="sax2">
+					<label for="instr-radio-sax2">Sax 2</label>
+				 </div>
+				 <div>
+					<input type="radio" id="instr-radio-harp" name="instrumentSingle" value="harp">
+					<label for="instr-radio-harp">Harp</label>
+				 </div>
+				 <div>
+					<input type="radio" id="instr-radio-guzheng" name="instrumentSingle" value="guzheng">
+					<label for="instr-radio-guzheng">Guzheng</label>
+				 </div>
+				 <div>
+					<input type="radio" id="instr-radio-guitar" name="instrumentSingle" value="guitar">
+					<label for="instr-radio-guitar">Guitar</label>
+				 </div>
+				 <div>
+					<input type="radio" id="instr-radio-clarinet" name="instrumentSingle" value="clarinet">
+					<label for="instr-radio-clarinet">Clarinet</label>
+				 </div>
+			</div>
+
+			<!-- Checkbox Container (Multi Select - Initially Hidden) -->
+			<div id="instrumentCheckboxContainer" class="instrument-container instrument-checkbox-container hide">
+				<!-- Checkboxes moved inside here -->
+				 <div>
+					<input type="checkbox" id="instr-check-piano" name="instrumentMulti" value="piano">
+					<label for="instr-check-piano">Piano</label>
+				 </div>
+				 <div>
+					<input type="checkbox" id="instr-check-vibraphone" name="instrumentMulti" value="vibraphone">
+					<label for="instr-check-vibraphone">Vibraphone</label>
+				 </div>
+				 <div>
+					<input type="checkbox" id="instr-check-twinkle" name="instrumentMulti" value="twinkle">
+					<label for="instr-check-twinkle">Twinkle</label>
+				 </div>
+				 <div>
+					<input type="checkbox" id="instr-check-sax" name="instrumentMulti" value="sax">
+					<label for="instr-check-sax">Sax</label>
+				 </div>
+				 <div>
+					<input type="checkbox" id="instr-check-sax2" name="instrumentMulti" value="sax2">
+					<label for="instr-check-sax2">Sax 2</label>
+				 </div>
+				 <div>
+					<input type="checkbox" id="instr-check-harp" name="instrumentMulti" value="harp">
+					<label for="instr-check-harp">Harp</label>
+				 </div>
+				 <div>
+					<input type="checkbox" id="instr-check-guzheng" name="instrumentMulti" value="guzheng">
+					<label for="instr-check-guzheng">Guzheng</label>
+				 </div>
+				 <div>
+					<input type="checkbox" id="instr-check-guitar" name="instrumentMulti" value="guitar">
+					<label for="instr-check-guitar">Guitar</label>
+				 </div>
+				 <div>
+					<input type="checkbox" id="instr-check-clarinet" name="instrumentMulti" value="clarinet">
+					<label for="instr-check-clarinet">Clarinet</label>
+				 </div>
+			</div>
+		</fieldset>
+
+		<!-- Volume Control -->
 		<div class="control-group">
 			<label for="volumeSlider">Volume: <span id="volumeValueSpan" class="slider-value"></span></label>
 			<input type="range" id="volumeSlider" min="0" max="1" step="0.05">

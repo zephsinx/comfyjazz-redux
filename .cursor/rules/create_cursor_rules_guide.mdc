@@ -1,0 +1,49 @@
+---
+description: USE WHEN creating or modifying Cursor rule (.mdc) files
+globs: 
+alwaysApply: false
+---
+# AI Rule: Creating Effective Cursor Rules
+
+**AI Assistant Instructions:** When asked to create or modify a Cursor rule file (`.mdc`), ensure the following structure and best practices are followed:
+
+**If the user's request for the rule is ambiguous regarding type, scope, or specific instructions, MUST ask for clarification before proceeding.**
+
+## 1. Frontmatter Configuration
+
+All Cursor rules MUST have YAML frontmatter containing `description`, `globs`, and `alwaysApply` fields. Configure these fields **exactly** according to the intended rule type (determined from user request or rule purpose):
+
+*   **`Always` Rules:**
+    *   `description: `
+    *   `globs: `
+    *   `alwaysApply: true`
+
+*   **`Auto Attached` Rules:**
+    *   `description: `
+    *   `globs: ["**/pattern1/*.ts", "**/pattern2/*.js"]` (Use specific patterns)
+    *   `alwaysApply: false`
+
+*   **`Agent Requested` Rules:**
+    *   `description: "USE WHEN [Concise, keyword-rich summary (max ~120 chars)]"` (Must start with 'USE WHEN')
+    *   `globs: `
+    *   `alwaysApply: false`
+
+*   **`Manual` Rules:**
+    *   `description: `
+    *   `globs: `
+    *   `alwaysApply: false`
+
+## 2. Rule Body Best Practices
+
+The rule body MUST contain clear, actionable instructions for the AI assistant that will *use* the rule later:
+
+*   **Use Imperative Language:** Employ strong directives (`MUST`, `NEVER`, `SHOULD`, `AVOID`, `PREFER`, `ENSURE`).
+*   **Be Specific & Unambiguous:** Define standards precisely. Avoid vague terms.
+*   **Focus on Actionable Steps:** Frame guidelines as tasks the AI can perform or checks it can make.
+*   **Provide Brief Context (Why):** Explain the reasoning *briefly* if it clarifies the instruction.
+*   **Use Markdown Formatting:** Leverage headings, lists, and bold text for clarity.
+*   **Address Ambiguity (for Target AI):** If the rule being created involves potential uncertainty for the target AI, include guidance on how it should seek clarification (e.g., "If unsure..., ask user...").
+*   **Keep it Concise:** Avoid unnecessary jargon or verbosity.
+*   **No Meta-Comments:** Do not include comments *within the rule being created* about the act of creating it.
+
+**Goal:** To generate rule files that are correctly configured according to their type and contain clear, specific, actionable instructions that effectively guide AI behavior according to the user's intent and project standards. 

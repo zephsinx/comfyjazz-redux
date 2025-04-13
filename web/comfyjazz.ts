@@ -76,6 +76,18 @@ export interface ComfyJazzInstance {
 const noteSoundCache = new Map<string, Howl>();
 let globalInstanceRef: ComfyJazzInstance | null = null; // Reference to the current instance for context
 
+// --- Utility Functions (needed at module scope) ---
+/**
+ * Generates a random integer between 0 (inclusive) and maxExclusive (exclusive).
+ * @param maxExclusive The upper bound (exclusive).
+ * @returns A random integer.
+ */
+function getRandomInt(maxExclusive: number): number {
+  // Ensure maxExclusive is at least 1 to avoid issues with empty arrays or NaN
+  maxExclusive = Math.max(1, maxExclusive);
+  return Math.floor(Math.random() * maxExclusive);
+}
+
 // --- Audio Playback Functions (Module Scope) ---
 
 /**
@@ -177,9 +189,20 @@ if (window.Worker) {
   noteWorker.onmessage = (event: MessageEvent<WorkerSoundData>) => {
     const { url, playbackRate } = event.data;
     if (url && playbackRate && globalInstanceRef) { // Check globalInstanceRef
-      const instrument = globalInstanceRef.instrument.split(",").map(x => x.trim())[0] || 'piano';
+      // --- Fix multi-instrument selection --- 
+      const instrumentList = globalInstanceRef.instrument
+        .split(",")
+        .map(x => x.trim())
+        .filter(Boolean); // Remove empty strings if user inputs e.g. "piano, "
+      
+      let selectedInstrument = 'piano'; // Default instrument
+      if (instrumentList.length > 0) {
+        selectedInstrument = instrumentList[getRandomInt(instrumentList.length)];
+      }
+      // --- End fix ---
+
       const baseUrl = globalInstanceRef.baseUrl || 'web/sounds';
-      const fullUrl = `${baseUrl}/${instrument}/${url}.ogg`;
+      const fullUrl = `${baseUrl}/${selectedInstrument}/${url}.ogg`; // Use selectedInstrument
       const volume = globalInstanceRef.volume ?? 1;
       playNoteSound(fullUrl, volume, playbackRate); // Call module-scoped function
     } else {
