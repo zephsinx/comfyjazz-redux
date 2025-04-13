@@ -2,6 +2,21 @@ import ComfyJazz from "./web/comfyjazz";
 import { ComfyJazzInstance, ComfyJazzOptions } from "./web/comfyjazz";
 import ComfyJS from "comfy.js";
 
+// --- Utility Functions ---
+function debounce<T extends (...args: any[]) => void>(func: T, wait: number): (...args: Parameters<T>) => void {
+  let timeout: ReturnType<typeof setTimeout> | null;
+  return (...args: Parameters<T>): void => {
+    const later = () => {
+      timeout = null;
+      func(...args);
+    };
+    if (timeout !== null) {
+      clearTimeout(timeout);
+    }
+    timeout = setTimeout(later, wait);
+  };
+}
+
 const params: URLSearchParams = new URLSearchParams(location.search);
 
 const instrumentParam: string | null = params.get("instrument");
@@ -217,14 +232,18 @@ if (instrumentCheckboxContainer) {
 }
 
 // Volume Slider (Using 'input' for real-time feedback)
-if (volumeSlider && volumeValueSpan) { // Ensure span exists
+if (volumeSlider && volumeValueSpan) {
+  const debouncedSetVolume = debounce((value: number) => {
+    if (!isNaN(value)) {
+      comfyJazz.setVolume(value);
+    }
+  }, 100); // Debounce by 100ms
+
   volumeSlider.addEventListener('input', (e) => {
     const target = e.currentTarget as HTMLInputElement;
     const newVolume = parseFloat(target.value);
-    volumeValueSpan.textContent = newVolume.toFixed(2); // Update display
-    if (!isNaN(newVolume)) {
-      comfyJazz.setVolume(newVolume);
-    }
+    volumeValueSpan.textContent = newVolume.toFixed(2); // Update display immediately
+    debouncedSetVolume(newVolume); // Call debounced function
   });
 }
 
@@ -237,38 +256,50 @@ if (playAutoNotesCheckbox) {
 }
 
 // Auto Notes Chance Slider (Using 'input')
-if (autoNotesChanceSlider && autoNotesChanceValueSpan) { // Ensure span exists
+if (autoNotesChanceSlider && autoNotesChanceValueSpan) {
+  const debouncedSetAutoNotesChance = debounce((value: number) => {
+      if (!isNaN(value)) {
+         comfyJazz.setAutoNotesChance(value);
+      }
+  }, 100); // Debounce by 100ms
+
   autoNotesChanceSlider.addEventListener('input', (e) => {
     const target = e.currentTarget as HTMLInputElement;
     const newChance = parseFloat(target.value);
-    autoNotesChanceValueSpan.textContent = newChance.toFixed(2); // Update display
-    if (!isNaN(newChance)) {
-       comfyJazz.setAutoNotesChance(newChance);
-    }
+    autoNotesChanceValueSpan.textContent = newChance.toFixed(2); // Update display immediately
+    debouncedSetAutoNotesChance(newChance); // Call debounced function
   });
 }
 
 // Auto Notes Delay Slider (Using 'input')
-if (autoNotesDelaySlider && autoNotesDelayValueSpan) { // Ensure span exists
+if (autoNotesDelaySlider && autoNotesDelayValueSpan) {
+  const debouncedSetAutoNotesDelay = debounce((value: number) => {
+      if (!isNaN(value)) {
+         comfyJazz.setAutoNotesDelay(value);
+      }
+  }, 100); // Debounce by 100ms
+
   autoNotesDelaySlider.addEventListener('input', (e) => {
     const target = e.currentTarget as HTMLInputElement;
     const newDelay = parseInt(target.value, 10);
-    autoNotesDelayValueSpan.textContent = String(newDelay);
-    if (!isNaN(newDelay)) {
-       comfyJazz.setAutoNotesDelay(newDelay);
-    }
+    autoNotesDelayValueSpan.textContent = String(newDelay); // Update display immediately
+    debouncedSetAutoNotesDelay(newDelay); // Call debounced function
   });
 }
 
 // Transpose Slider (Using 'input')
-if (transposeSlider && transposeValueSpan) { // Ensure span exists
+if (transposeSlider && transposeValueSpan) {
+  const debouncedSetTranspose = debounce((value: number) => {
+      if (!isNaN(value)) {
+        comfyJazz.setTranspose(value);
+      }
+  }, 100); // Debounce by 100ms
+
   transposeSlider.addEventListener('input', (e) => {
     const target = e.currentTarget as HTMLInputElement;
     const newTranspose = parseInt(target.value, 10);
-    transposeValueSpan.textContent = String(newTranspose);
-    if (!isNaN(newTranspose)) {
-      comfyJazz.setTranspose(newTranspose);
-    }
+    transposeValueSpan.textContent = String(newTranspose); // Update display immediately
+    debouncedSetTranspose(newTranspose); // Call debounced function
   });
 }
 
