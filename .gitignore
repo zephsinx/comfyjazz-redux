@@ -105,8 +105,3 @@ dist
 
 # VSCode
 .vscode/
-
-# Cursor files
-.cursorrules
-.cursorignore
-.cursor/
