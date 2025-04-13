@@ -31,7 +31,8 @@ comfyJazz.start();
 // Get references to all control elements
 const controlsPanel = document.querySelector<HTMLDivElement>('#comfy-controls');
 const closeControlsBtn = document.querySelector<HTMLButtonElement>('#close-controls-btn');
-const instrumentSelect = document.querySelector<HTMLSelectElement>('#instrumentSelect');
+const instrumentCheckboxes = document.querySelectorAll<HTMLInputElement>('input[name="instrument"]');
+const instrumentCheckboxContainer = document.querySelector<HTMLDivElement>('.instrument-checkbox-container');
 const volumeSlider = document.querySelector<HTMLInputElement>('#volumeSlider');
 const playAutoNotesCheckbox = document.querySelector<HTMLInputElement>('#playAutoNotesCheckbox');
 const autoNotesChanceSlider = document.querySelector<HTMLInputElement>('#autoNotesChanceSlider');
@@ -63,7 +64,6 @@ function initializeControls() {
      volumeSlider.value = String(comfyJazz.volume);
      if (volumeValueSpan) volumeValueSpan.textContent = parseFloat(volumeSlider.value).toFixed(2); // Format volume
   }
-  if (instrumentSelect) instrumentSelect.value = comfyJazz.instrument;
   if (playAutoNotesCheckbox) playAutoNotesCheckbox.checked = comfyJazz.playAutoNotes;
   if (autoNotesChanceSlider) {
     autoNotesChanceSlider.value = String(comfyJazz.autoNotesChance);
@@ -78,6 +78,12 @@ function initializeControls() {
     transposeSlider.value = String(comfyJazz.transpose);
     if (transposeValueSpan) transposeValueSpan.textContent = transposeSlider.value;
   }
+
+  // Initialize Instrument Checkboxes
+  const activeInstruments = comfyJazz.instrument.split(",").map(i => i.trim()).filter(Boolean);
+  instrumentCheckboxes.forEach(checkbox => {
+    checkbox.checked = activeInstruments.includes(checkbox.value);
+  });
 }
 
 // Initialize controls once the DOM is ready (or immediately if already loaded)
@@ -96,11 +102,27 @@ if (closeControlsBtn && controlsPanel) {
   });
 }
 
-// Instrument Select
-if (instrumentSelect) {
-  instrumentSelect.addEventListener('change', (e) => {
-    const target = e.currentTarget as HTMLSelectElement;
-    comfyJazz.setInstrument(target.value);
+// Add listener for Instrument Checkboxes (using event delegation on container)
+if (instrumentCheckboxContainer) {
+  instrumentCheckboxContainer.addEventListener('change', (e) => {
+    // Check if the event target is an instrument checkbox
+    if ((e.target as HTMLInputElement).name === 'instrument') {
+      const checkedInstruments = Array.from(instrumentCheckboxes)
+        .filter(checkbox => checkbox.checked)
+        .map(checkbox => checkbox.value);
+
+      let instrumentString = checkedInstruments.join(",");
+
+      // Ensure at least one instrument is selected (default to piano if none)
+      if (instrumentString.length === 0) {
+        instrumentString = "piano";
+        // Find the piano checkbox and check it visually
+        const pianoCheckbox = document.getElementById('instr-piano') as HTMLInputElement | null;
+        if (pianoCheckbox) pianoCheckbox.checked = true;
+      }
+
+      comfyJazz.setInstrument(instrumentString);
+    }
   });
 }
 
@@ -164,15 +186,12 @@ if (transposeSlider && transposeValueSpan) { // Ensure span exists
 if (resetSettingsBtn) {
   resetSettingsBtn.addEventListener('click', () => {
     // Set comfyJazz instance back to defaults
-    comfyJazz.setInstrument(defaultComfyJazzSettings.instrument);
-    comfyJazz.setVolume(defaultComfyJazzSettings.volume);
-    comfyJazz.setPlayAutoNotes(defaultComfyJazzSettings.playAutoNotes);
-    comfyJazz.setAutoNotesChance(defaultComfyJazzSettings.autoNotesChance);
-    comfyJazz.setAutoNotesDelay(defaultComfyJazzSettings.autoNotesDelay);
     comfyJazz.setTranspose(defaultComfyJazzSettings.transpose);
 
-    // Update the UI to reflect the defaults
+    // Update the UI to reflect the defaults (this will reset checkboxes correctly)
     initializeControls(); 
+    // Explicitly call setInstrument AFTER initializeControls has visually reset checkboxes
+    comfyJazz.setInstrument(defaultComfyJazzSettings.instrument);
   });
 }
 
@@ -196,8 +215,9 @@ if (channel) {
 
 //Keydown triggers notes AND toggles panel
 window.addEventListener("keydown", (e: KeyboardEvent): void => {
-  // Toggle panel with 'C'
-  if (e.code === "KeyC") {
+
+  // Toggle panel with 'C' - Use e.key instead of e.code
+  if (e.key.toLowerCase() === "c") { // Check the character key 'c'
     if (controlsPanel) {
       controlsPanel.classList.toggle("hide");
       // Re-initialize controls every time panel is shown to reflect latest state
@@ -205,10 +225,12 @@ window.addEventListener("keydown", (e: KeyboardEvent): void => {
         initializeControls();
       }
     }
+    // Prevent falling through to the note playing logic
+    e.preventDefault(); // Optional: Might help ensure only panel toggle happens
   } 
   // Play note progression with other keys (if panel is hidden or focus isn't on an input)
   else if (controlsPanel?.classList.contains('hide') || !(document.activeElement instanceof HTMLInputElement || document.activeElement instanceof HTMLSelectElement)) {
-     comfyJazz.playNoteProgression((Math.random() * 8) >> 0);
+    comfyJazz.playNoteProgression((Math.random() * 8) >> 0);
   }
 });
 

@@ -68,6 +68,54 @@
 		<div class="control-group reset-group">
 			<button id="resetSettingsBtn" class="reset-btn">Reset to Defaults</button>
 		</div>
+
+		<!-- Add Instrument Checkbox Group -->
+		<fieldset class="control-group instrument-group">
+			<legend>Instruments (Select one or more)</legend>
+			<div class="instrument-checkbox-container">
+				<div>
+					<input type="checkbox" id="instr-piano" name="instrument" value="piano">
+					<label for="instr-piano">Piano</label>
+				</div>
+				<div>
+					<input type="checkbox" id="instr-vibraphone" name="instrument" value="vibraphone">
+					<label for="instr-vibraphone">Vibraphone</label>
+				</div>
+				<div>
+					<input type="checkbox" id="instr-twinkle" name="instrument" value="twinkle">
+					<label for="instr-twinkle">Twinkle</label>
+				</div>
+				<div>
+					<input type="checkbox" id="instr-sax" name="instrument" value="sax">
+					<label for="instr-sax">Sax</label>
+				</div>
+				<div>
+					<input type="checkbox" id="instr-sax2" name="instrument" value="sax2">
+					<label for="instr-sax2">Sax 2</label>
+				</div>
+				<div>
+					<input type="checkbox" id="instr-harp" name="instrument" value="harp">
+					<label for="instr-harp">Harp</label>
+				</div>
+				<div>
+					<input type="checkbox" id="instr-guzheng" name="instrument" value="guzheng">
+					<label for="instr-guzheng">Guzheng</label>
+				</div>
+				<div>
+					<input type="checkbox" id="instr-guitar" name="instrument" value="guitar">
+					<label for="instr-guitar">Guitar</label>
+				</div>
+				<div>
+					<input type="checkbox" id="instr-clarinet" name="instrument" value="clarinet">
+					<label for="instr-clarinet">Clarinet</label>
+				</div>
+			</div>
+		</fieldset>
+
+		<div class="control-group">
+			<label for="volumeSlider">Volume: <span id="volumeValueSpan" class="slider-value"></span></label>
+			<input type="range" id="volumeSlider" min="0" max="1" step="0.05">
+		</div>
 	</div>
 </body>
 

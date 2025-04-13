@@ -199,3 +199,35 @@ label[for="playAutoNotesCheckbox"] {
 .banner.hide {
   display: none;
 }
+
+/* Instrument Checkbox Group Styling */
+.instrument-group legend {
+    margin-bottom: 8px; /* Add space below legend */
+}
+
+.instrument-checkbox-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); /* Responsive columns */
+    gap: 8px; /* Space between checkboxes */
+    max-height: 150px; /* Limit height and allow scrolling if needed */
+    overflow-y: auto; /* Add scrollbar if content overflows */
+    padding: 5px; /* Padding inside the container */
+    background-color: #e8e8e8; /* Slightly different background for the scroll area */
+    border-radius: 4px;
+}
+
+.instrument-checkbox-container div {
+    display: flex;
+    align-items: center;
+}
+
+.instrument-checkbox-container input[type="checkbox"] {
+    margin-right: 6px;
+}
+
+.instrument-checkbox-container label {
+    font-weight: normal; /* Normal weight for checkbox labels */
+    margin-bottom: 0; /* Override default label margin */
+    font-size: 0.9em; /* Match other control labels */
+    cursor: pointer; /* Indicate labels are clickable */
+}
