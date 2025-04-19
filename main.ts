@@ -1,6 +1,7 @@
 import ComfyJazz from "./web/comfyjazz";
 import { ComfyJazzInstance, ComfyJazzOptions } from "./web/comfyjazz";
 import ComfyJS from "comfy.js";
+import { StreamerbotClient } from "@streamerbot/client";
 
 // --- Utility Functions ---
 function debounce<T extends (...args: any[]) => void>(
@@ -21,31 +22,37 @@ function debounce<T extends (...args: any[]) => void>(
 }
 
 // --- localStorage Helpers ---
-const STORAGE_KEY = "comfyJazzSettings";
+const STORAGE_KEY = "comfyJazzSettings_v2";
 
-function loadSettings(): Partial<ComfyJazzOptions> {
+interface SavedSettings extends Partial<ComfyJazzOptions> {
+  enableStreamerBot?: boolean;
+}
+
+function loadSettings(): SavedSettings {
   const savedSettingsJSON = localStorage.getItem(STORAGE_KEY);
   if (savedSettingsJSON) {
     try {
-      return JSON.parse(savedSettingsJSON);
+      const parsed = JSON.parse(savedSettingsJSON);
+      return typeof parsed === "object" && parsed !== null ? parsed : {};
     } catch (e) {
       console.error("Error parsing saved settings:", e);
-      localStorage.removeItem(STORAGE_KEY); // Clear corrupted data
+      localStorage.removeItem(STORAGE_KEY);
     }
   }
-  return {}; // Return empty object if nothing saved or error
+  return {};
 }
 
-function saveSettings(settings: ComfyJazzOptions) {
-  if (!settings) return;
+function saveSettings(cjSettings: ComfyJazzOptions, sbEnabled: boolean) {
+  if (!cjSettings) return;
   try {
-    const settingsToSave: Partial<ComfyJazzOptions> = {
-      instrument: settings.instrument,
-      volume: settings.volume,
-      playAutoNotes: settings.playAutoNotes,
-      autoNotesChance: settings.autoNotesChance,
-      autoNotesDelay: settings.autoNotesDelay,
-      transpose: settings.transpose,
+    const settingsToSave: SavedSettings = {
+      instrument: cjSettings.instrument,
+      volume: cjSettings.volume,
+      playAutoNotes: cjSettings.playAutoNotes,
+      autoNotesChance: cjSettings.autoNotesChance,
+      autoNotesDelay: cjSettings.autoNotesDelay,
+      transpose: cjSettings.transpose,
+      enableStreamerBot: sbEnabled,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settingsToSave));
   } catch (e) {
@@ -58,24 +65,47 @@ function saveSettings(settings: ComfyJazzOptions) {
 const params: URLSearchParams = new URLSearchParams(location.search);
 
 // Load initial settings from localStorage and merge with defaults
-const savedSettings = loadSettings();
-const defaultComfyJazzSettings = {
-  instrument: "piano", // Default is single piano
+const savedSettings: SavedSettings = loadSettings();
+
+// Define defaults for *all* settings, including the new one
+const defaultSettings: Required<SavedSettings> = {
+  instrument: "piano",
   volume: 1,
   playAutoNotes: true,
   autoNotesChance: 0.2,
   autoNotesDelay: 300,
   transpose: -5,
+  enableStreamerBot: false,
+  baseUrl: "web/sounds",
+  backgroundLoopUrl: "jazz_loop.ogg",
+  backgroundLoopDuration: 27.428,
 };
-const initialComfyJazzSettings = {
-  ...defaultComfyJazzSettings,
+
+// Combine defaults with loaded settings
+const initialSettings = {
+  ...defaultSettings,
   ...savedSettings,
 };
 
-// Apply initial volume from combined settings
-let initialVolume: number = initialComfyJazzSettings.volume;
+// State variable for streamer.bot toggle
+let enableStreamerBot = initialSettings.enableStreamerBot;
 
-// Override with URL params if present (URL params take highest priority)
+// Separate comfyJazz options from the combined settings
+const comfyJazzOptions: ComfyJazzOptions = {
+  instrument: initialSettings.instrument,
+  volume: initialSettings.volume,
+  playAutoNotes: initialSettings.playAutoNotes,
+  autoNotesChance: initialSettings.autoNotesChance,
+  autoNotesDelay: initialSettings.autoNotesDelay,
+  transpose: initialSettings.transpose,
+  baseUrl: initialSettings.baseUrl,
+  backgroundLoopUrl: initialSettings.backgroundLoopUrl,
+  backgroundLoopDuration: initialSettings.backgroundLoopDuration,
+};
+
+// Apply initial volume from combined settings AFTER potentially reading from URL param
+let initialVolume: number = comfyJazzOptions.volume ?? defaultSettings.volume;
+// Override with URL params if present (URL params take highest priority for relevant settings)
 const instrumentParam: string | null = params.get("instrument");
 const volumeParam: string | null = params.get("volume");
 if (volumeParam !== null) {
@@ -84,19 +114,104 @@ if (volumeParam !== null) {
     initialVolume = Math.max(0, Math.min(1, parsedVolume));
   }
 }
+// Assign URL params to the options passed to ComfyJazz
+comfyJazzOptions.instrument = instrumentParam ?? comfyJazzOptions.instrument;
+comfyJazzOptions.volume = initialVolume;
 
-// Type the options object for ComfyJazz initialization
-const comfyJazzOptions: ComfyJazzOptions = {
-  // Start with combined settings (defaults + localStorage)
-  ...initialComfyJazzSettings,
-  // Then override with URL params
-  instrument: instrumentParam ?? initialComfyJazzSettings.instrument,
-  volume: initialVolume,
-};
-
-//Start ComfyJazz - instance type is now inferred
+// Start ComfyJazz
 const comfyJazz: ComfyJazzInstance = ComfyJazz(comfyJazzOptions);
 comfyJazz.start();
+
+// --- Streamer.bot Client Initialization & Management ---
+let sbClient: StreamerbotClient | null = null;
+let isStreamerBotConnected = false;
+
+function connectStreamerBot() {
+  if (!enableStreamerBot) {
+      // console.log("Streamer.bot integration is disabled. Not connecting.");
+      return; // Don't connect if the setting is off
+  }
+
+  if (sbClient && isStreamerBotConnected) {
+    // console.log("Streamer.bot client already connected.");
+    return; // Already connected
+  }
+
+  if (sbClient) {
+      // Instance exists but not connected, just try connecting
+      console.log("Streamer.bot client exists, attempting connection...");
+      sbClient.connect();
+      return;
+  }
+
+  // Instance doesn't exist, create it first
+  console.log("Initializing and connecting Streamer.bot client...");
+  try {
+      sbClient = new StreamerbotClient({
+          immediate: false, // We control connection timing
+          onConnect: (data) => {
+              if (!enableStreamerBot) { // Check if disabled *during* connection attempt
+                  disconnectStreamerBot();
+                  return;
+              }
+              isStreamerBotConnected = true;
+              console.log("Streamer.bot client connected successfully.", data);
+              // TODO: Add specific event listeners upon successful connect
+          },
+          onError: (error) => {
+              if (isStreamerBotConnected) {
+                  console.error("Streamer.bot client connection error:", error);
+              }
+              isStreamerBotConnected = false;
+              if (!enableStreamerBot) {
+                  disconnectStreamerBot(); // Ensure cleanup if disabled during error
+              }
+          },
+          onDisconnect: () => {
+              if (isStreamerBotConnected) {
+                  console.log("Streamer.bot client connection closed.");
+              }
+              isStreamerBotConnected = false;
+              sbClient = null; // Nullify on disconnect to allow re-creation
+          }
+      });
+
+      // *** Add desired event listeners here using sbClient.on(...) ***
+      // Example placeholder:
+      // sbClient.on('Twitch.Follow', (data) => { console.log('Follow!', data); comfyJazz.playNoteProgression(2); });
+
+      // Now attempt the explicit connection for the newly created instance
+      sbClient.connect();
+
+  } catch (error) {
+    console.error("Failed to initialize Streamer.bot client instance:", error);
+    sbClient = null;
+    isStreamerBotConnected = false;
+    // Attempt to revert UI and state if initialization failed
+    const sbCheckbox = document.querySelector<HTMLInputElement>("#enableStreamerBotCheckbox");
+    if (sbCheckbox && enableStreamerBot) {
+        enableStreamerBot = false;
+        sbCheckbox.checked = false;
+        saveCurrentSettings();
+    }
+  }
+}
+
+function disconnectStreamerBot() {
+    if (sbClient) {
+        // console.log("Disconnecting Streamer.bot client...");
+        sbClient.disconnect();
+        sbClient = null; // Ensure instance is removed
+    } else {
+        // console.log("Streamer.bot client instance does not exist or already disconnected.");
+    }
+    isStreamerBotConnected = false; // Ensure state reflects disconnected
+}
+
+// Initial connection attempt on page load IF setting is enabled
+if (enableStreamerBot) {
+  connectStreamerBot();
+}
 
 // --- Control Panel UI Logic ---
 
@@ -104,6 +219,9 @@ comfyJazz.start();
 const controlsPanel = document.querySelector<HTMLDivElement>("#comfy-controls");
 const closeControlsBtn = document.querySelector<HTMLButtonElement>(
   "#close-controls-btn"
+);
+const enableStreamerBotCheckbox = document.querySelector<HTMLInputElement>(
+    "#enableStreamerBotCheckbox"
 );
 
 // Instrument controls
@@ -149,6 +267,11 @@ const transposeValueSpan = document.querySelector<HTMLSpanElement>(
   "#transposeValueSpan"
 );
 
+// Helper to save current state
+function saveCurrentSettings() {
+    saveSettings(comfyJazz, enableStreamerBot);
+}
+
 // --- Event Listeners for Controls ---
 
 // Close Button
@@ -156,6 +279,23 @@ if (closeControlsBtn && controlsPanel) {
   closeControlsBtn.addEventListener("click", () => {
     controlsPanel.classList.add("hide");
   });
+}
+
+// Streamer.bot Enable Checkbox Listener
+if (enableStreamerBotCheckbox) {
+    enableStreamerBotCheckbox.addEventListener('change', (e) => {
+        const target = e.currentTarget as HTMLInputElement;
+        enableStreamerBot = target.checked;
+        saveCurrentSettings(); // Save the new state
+
+        if (enableStreamerBot) {
+            // Explicitly try to connect when toggled on
+            connectStreamerBot();
+        } else {
+            // Explicitly disconnect when toggled off
+            disconnectStreamerBot();
+        }
+    });
 }
 
 // Listener for the MULTI-INSTRUMENT TOGGLE checkbox
@@ -175,7 +315,7 @@ if (
       const currentSingle =
         document.querySelector<HTMLInputElement>(
           'input[name="instrumentSingle"]:checked'
-        )?.value || defaultComfyJazzSettings.instrument;
+        )?.value || defaultSettings.instrument;
       instrumentCheckboxes.forEach((cb) => {
         cb.checked = cb.value === currentSingle;
       });
@@ -184,7 +324,7 @@ if (
       // Select the radio corresponding to the FIRST checked box (or default)
       const firstChecked =
         Array.from(instrumentCheckboxes).find((cb) => cb.checked)?.value ||
-        defaultComfyJazzSettings.instrument;
+        defaultSettings.instrument;
       const radioToSelect = document.getElementById(
         `instr-radio-${firstChecked}`
       ) as HTMLInputElement | null;
@@ -193,7 +333,7 @@ if (
       } else {
         // Fallback if first checked wasn't found (shouldn't happen often)
         const defaultRadio = document.getElementById(
-          `instr-radio-${defaultComfyJazzSettings.instrument}`
+          `instr-radio-${defaultSettings.instrument}`
         ) as HTMLInputElement | null;
         if (defaultRadio) defaultRadio.checked = true;
       }
@@ -232,15 +372,15 @@ if (volumeSlider && volumeValueSpan) {
   const debouncedSetVolume = debounce((value: number) => {
     if (!isNaN(value)) {
       comfyJazz.setVolume(value);
-      saveSettings(comfyJazz); // Save after update
+      saveCurrentSettings();
     }
-  }, 100); // Debounce by 100ms
+  }, 100);
 
   volumeSlider.addEventListener("input", (e) => {
     const target = e.currentTarget as HTMLInputElement;
     const newVolume = parseFloat(target.value);
-    volumeValueSpan.textContent = newVolume.toFixed(2); // Update display immediately
-    debouncedSetVolume(newVolume); // Call debounced function
+    volumeValueSpan.textContent = newVolume.toFixed(2);
+    debouncedSetVolume(newVolume);
   });
 }
 
@@ -249,7 +389,7 @@ if (playAutoNotesCheckbox) {
   playAutoNotesCheckbox.addEventListener("change", (e) => {
     const target = e.currentTarget as HTMLInputElement;
     comfyJazz.setPlayAutoNotes(target.checked);
-    saveSettings(comfyJazz); // Save after update
+    saveCurrentSettings();
   });
 }
 
@@ -258,15 +398,15 @@ if (autoNotesChanceSlider && autoNotesChanceValueSpan) {
   const debouncedSetAutoNotesChance = debounce((value: number) => {
     if (!isNaN(value)) {
       comfyJazz.setAutoNotesChance(value);
-      saveSettings(comfyJazz); // Save after update
+      saveCurrentSettings();
     }
-  }, 100); // Debounce by 100ms
+  }, 100);
 
   autoNotesChanceSlider.addEventListener("input", (e) => {
     const target = e.currentTarget as HTMLInputElement;
     const newChance = parseFloat(target.value);
-    autoNotesChanceValueSpan.textContent = newChance.toFixed(2); // Update display immediately
-    debouncedSetAutoNotesChance(newChance); // Call debounced function
+    autoNotesChanceValueSpan.textContent = newChance.toFixed(2);
+    debouncedSetAutoNotesChance(newChance);
   });
 }
 
@@ -275,15 +415,15 @@ if (autoNotesDelaySlider && autoNotesDelayValueSpan) {
   const debouncedSetAutoNotesDelay = debounce((value: number) => {
     if (!isNaN(value)) {
       comfyJazz.setAutoNotesDelay(value);
-      saveSettings(comfyJazz); // Save after update
+      saveCurrentSettings();
     }
-  }, 100); // Debounce by 100ms
+  }, 100);
 
   autoNotesDelaySlider.addEventListener("input", (e) => {
     const target = e.currentTarget as HTMLInputElement;
     const newDelay = parseInt(target.value, 10);
-    autoNotesDelayValueSpan.textContent = String(newDelay); // Update display immediately
-    debouncedSetAutoNotesDelay(newDelay); // Call debounced function
+    autoNotesDelayValueSpan.textContent = String(newDelay);
+    debouncedSetAutoNotesDelay(newDelay);
   });
 }
 
@@ -292,35 +432,45 @@ if (transposeSlider && transposeValueSpan) {
   const debouncedSetTranspose = debounce((value: number) => {
     if (!isNaN(value)) {
       comfyJazz.setTranspose(value);
-      saveSettings(comfyJazz); // Save after update
+      saveCurrentSettings();
     }
-  }, 100); // Debounce by 100ms
+  }, 100);
 
   transposeSlider.addEventListener("input", (e) => {
     const target = e.currentTarget as HTMLInputElement;
     const newTranspose = parseInt(target.value, 10);
-    transposeValueSpan.textContent = String(newTranspose); // Update display immediately
-    debouncedSetTranspose(newTranspose); // Call debounced function
+    transposeValueSpan.textContent = String(newTranspose);
+    debouncedSetTranspose(newTranspose);
   });
 }
 
 // Reset Settings Button
 if (resetSettingsBtn) {
   resetSettingsBtn.addEventListener("click", () => {
-    // Clear saved settings from localStorage first
-    localStorage.removeItem(STORAGE_KEY);
+    // Only clear comfyJazz related settings from localStorage
+    // We need to load existing settings, clear the comfy ones, then save back.
+    const currentSettings = loadSettings();
+    const settingsToKeep: SavedSettings = {
+        enableStreamerBot: currentSettings.enableStreamerBot ?? defaultSettings.enableStreamerBot,
+        // Potentially keep other non-comfyJazz settings here if any existed
+    };
+    // Overwrite localStorage with only the settings we want to keep
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(settingsToKeep));
 
-    // Reset ALL comfyJazz internal state to defaults
-    // (this will use the hardcoded defaults since localStorage is clear)
-    comfyJazz.setInstrument(defaultComfyJazzSettings.instrument);
-    comfyJazz.setVolume(defaultComfyJazzSettings.volume);
-    comfyJazz.setPlayAutoNotes(defaultComfyJazzSettings.playAutoNotes);
-    comfyJazz.setAutoNotesChance(defaultComfyJazzSettings.autoNotesChance);
-    comfyJazz.setAutoNotesDelay(defaultComfyJazzSettings.autoNotesDelay);
-    comfyJazz.setTranspose(defaultComfyJazzSettings.transpose);
+    // Reset ONLY comfyJazz internal state to defaults using defaultSettings
+    comfyJazz.setInstrument(defaultSettings.instrument);
+    comfyJazz.setVolume(defaultSettings.volume);
+    comfyJazz.setPlayAutoNotes(defaultSettings.playAutoNotes);
+    comfyJazz.setAutoNotesChance(defaultSettings.autoNotesChance);
+    comfyJazz.setAutoNotesDelay(defaultSettings.autoNotesDelay);
+    comfyJazz.setTranspose(defaultSettings.transpose);
 
-    // Update the entire UI based on the reset state
+    // Update the UI based on the reset state
+    // Note: This will NOT reset the Streamer.bot checkbox UI, as intended
     initializeControls();
+
+    // Do NOT reset the enableStreamerBot state variable
+    // Do NOT disconnect streamerbot
   });
 }
 
@@ -330,16 +480,10 @@ if (resetSettingsBtn) {
 const channel: string | null = params.get("channel");
 
 if (channel) {
-  ComfyJS.onChat = (
-    _user: string,
-    _message: string,
-    _flags: any,
-    _self: boolean,
-    _extra: any
-  ): void => {
-    comfyJazz.playNoteProgression((Math.random() * 8) >> 0);
-  };
+  console.log(`Connecting ComfyJS to Twitch channel: ${channel}`);
   ComfyJS.Init(channel);
+} else {
+  console.log("No Twitch channel specified, ComfyJS not initialized.");
 }
 
 //Keydown triggers notes AND toggles panel
@@ -407,28 +551,38 @@ window.addEventListener("storage", (event) => {
     console.log("Settings changed in another tab!");
     try {
       // Ensure newValue is not null before parsing
-      const newSettings = event.newValue ? JSON.parse(event.newValue) : {};
+      const newSettings: SavedSettings = event.newValue ? JSON.parse(event.newValue) : {};
 
-      // Apply these new settings to the current tab's ComfyJazz instance
-      // Merge with defaults to handle potentially missing keys in saved data
-      const mergedSettings = { ...defaultComfyJazzSettings, ...newSettings };
+      // Merge with defaults to handle potentially missing keys
+      const mergedSettings = { ...defaultSettings, ...newSettings };
+
+      // Update the streamerbot state variable
+      const sbSettingChanged = enableStreamerBot !== mergedSettings.enableStreamerBot;
+      enableStreamerBot = mergedSettings.enableStreamerBot;
 
       if (comfyJazz) {
-        // Update internal state
-        comfyJazz.setVolume(mergedSettings.volume);
-        comfyJazz.setInstrument(mergedSettings.instrument);
-        comfyJazz.setPlayAutoNotes(mergedSettings.playAutoNotes);
-        comfyJazz.setAutoNotesChance(mergedSettings.autoNotesChance);
-        comfyJazz.setAutoNotesDelay(mergedSettings.autoNotesDelay);
-        comfyJazz.setTranspose(mergedSettings.transpose);
+        // Update internal comfyJazz state
+        comfyJazz.setVolume(mergedSettings.volume ?? defaultSettings.volume);
+        comfyJazz.setInstrument(mergedSettings.instrument ?? defaultSettings.instrument);
+        comfyJazz.setPlayAutoNotes(mergedSettings.playAutoNotes ?? defaultSettings.playAutoNotes);
+        comfyJazz.setAutoNotesChance(mergedSettings.autoNotesChance ?? defaultSettings.autoNotesChance);
+        comfyJazz.setAutoNotesDelay(mergedSettings.autoNotesDelay ?? defaultSettings.autoNotesDelay);
+        comfyJazz.setTranspose(mergedSettings.transpose ?? defaultSettings.transpose);
 
         // Re-sync UI based on the new state
         initializeControls();
+
+        // Connect/disconnect streamerbot if its state changed
+        if (sbSettingChanged) {
+            if (enableStreamerBot) {
+                connectStreamerBot();
+            } else {
+                disconnectStreamerBot();
+            }
+        }
       }
     } catch (e) {
       console.error("Error handling storage event:", e);
-      // Optionally clear corrupted data from the triggering event
-      // localStorage.removeItem(STORAGE_KEY);
     }
   }
 });
@@ -437,7 +591,7 @@ window.addEventListener("storage", (event) => {
 function updateInstrumentState() {
   if (!toggleMultiInstrument || !comfyJazz) return;
 
-  let instrumentString = "piano"; // Default
+  let instrumentString = defaultSettings.instrument; // Use default from central object
 
   if (toggleMultiInstrument.checked) {
     // Multi-select mode
@@ -447,7 +601,7 @@ function updateInstrumentState() {
     instrumentString = checkedInstruments.join(",");
     // Ensure at least one is checked in multi-mode
     if (instrumentString.length === 0) {
-      instrumentString = defaultComfyJazzSettings.instrument; // Fallback to default
+      instrumentString = defaultSettings.instrument; // Fallback to default
       const defaultCheckbox = document.getElementById(
         `instr-check-${instrumentString}`
       ) as HTMLInputElement | null;
@@ -463,24 +617,28 @@ function updateInstrumentState() {
     }
   }
   comfyJazz.setInstrument(instrumentString);
-  saveSettings(comfyJazz); // Save after update
+  saveCurrentSettings();
 }
 
-// Function to initialize control values from comfyJazz state
+// Function to initialize control values from current state
 function initializeControls() {
   if (
     !comfyJazz ||
     !toggleMultiInstrument ||
     !instrumentRadioContainer ||
-    !instrumentCheckboxContainer
+    !instrumentCheckboxContainer ||
+    !enableStreamerBotCheckbox
   )
     return;
+
+  // --- Initialize Streamer.bot checkbox ---
+  enableStreamerBotCheckbox.checked = enableStreamerBot;
 
   // --- Initialize other controls ---
   if (volumeSlider) {
     volumeSlider.value = String(comfyJazz.volume);
     if (volumeValueSpan)
-      volumeValueSpan.textContent = parseFloat(volumeSlider.value).toFixed(2); // Format volume
+      volumeValueSpan.textContent = parseFloat(volumeSlider.value).toFixed(2);
   }
   if (playAutoNotesCheckbox)
     playAutoNotesCheckbox.checked = comfyJazz.playAutoNotes;
@@ -489,14 +647,13 @@ function initializeControls() {
     if (autoNotesChanceValueSpan)
       autoNotesChanceValueSpan.textContent = parseFloat(
         autoNotesChanceSlider.value
-      ).toFixed(2); // Format chance
+      ).toFixed(2);
   }
   if (autoNotesDelaySlider) {
     autoNotesDelaySlider.value = String(comfyJazz.autoNotesDelay);
     if (autoNotesDelayValueSpan)
       autoNotesDelayValueSpan.textContent = autoNotesDelaySlider.value;
   }
-  // Initialize Transpose slider and span
   if (transposeSlider) {
     transposeSlider.value = String(comfyJazz.transpose);
     if (transposeValueSpan)
@@ -505,46 +662,53 @@ function initializeControls() {
 
   // --- Initialize Instrument Controls ---
   // Determine initial mode based on whether instrument string contains commas
-  const isMultiMode = comfyJazz.instrument.includes(",");
+  const currentInstrument = comfyJazz.instrument ?? defaultSettings.instrument;
+  const isMultiMode = currentInstrument.includes(",");
   toggleMultiInstrument.checked = isMultiMode;
 
   if (isMultiMode) {
     instrumentRadioContainer.classList.add("hide");
     instrumentCheckboxContainer.classList.remove("hide");
     // Initialize Checkboxes
-    const activeInstruments = comfyJazz.instrument
+    const activeInstruments = currentInstrument
       .split(",")
       .map((i) => i.trim())
       .filter(Boolean);
     instrumentCheckboxes.forEach((checkbox) => {
       checkbox.checked = activeInstruments.includes(checkbox.value);
     });
-    // Ensure at least one is checked if loaded state was invalid multi-select
     if (activeInstruments.length === 0) {
       const defaultCheckbox = document.getElementById(
-        `instr-check-${defaultComfyJazzSettings.instrument}`
+        `instr-check-${defaultSettings.instrument}`
       ) as HTMLInputElement | null;
       if (defaultCheckbox) defaultCheckbox.checked = true;
-      comfyJazz.setInstrument(defaultComfyJazzSettings.instrument); // Correct internal state too
+      // Correct internal state only if it was invalid
+      if (comfyJazz.instrument !== defaultSettings.instrument) {
+          comfyJazz.setInstrument(defaultSettings.instrument);
+          saveCurrentSettings(); // Persist correction
+      }
     }
   } else {
     instrumentRadioContainer.classList.remove("hide");
     instrumentCheckboxContainer.classList.add("hide");
     // Initialize Radio Buttons
     const activeInstrument =
-      comfyJazz.instrument.trim() || defaultComfyJazzSettings.instrument;
+      currentInstrument.trim() || defaultSettings.instrument;
     const radioToCheck = document.getElementById(
       `instr-radio-${activeInstrument}`
     ) as HTMLInputElement | null;
     if (radioToCheck) {
       radioToCheck.checked = true;
     } else {
-      // Fallback if saved instrument isn't a valid radio option
       const defaultRadio = document.getElementById(
-        `instr-radio-${defaultComfyJazzSettings.instrument}`
+        `instr-radio-${defaultSettings.instrument}`
       ) as HTMLInputElement | null;
       if (defaultRadio) defaultRadio.checked = true;
-      comfyJazz.setInstrument(defaultComfyJazzSettings.instrument); // Correct internal state too
+      // Correct internal state only if it was invalid
+      if (comfyJazz.instrument !== defaultSettings.instrument) {
+          comfyJazz.setInstrument(defaultSettings.instrument);
+          saveCurrentSettings(); // Persist correction
+      }
     }
   }
 }
@@ -555,3 +719,19 @@ if (document.readyState === "loading") {
 } else {
   initializeControls();
 }
+
+// --- ComfyJS Event Handlers ---
+ComfyJS.onChat = (_user, _message, _flags, _self, extra) => {
+  if (comfyJazz && extra.customRewardId) {
+    // Play a note progression for channel point rewards
+    // console.log("Reward redeemed:", extra.customRewardId);
+    comfyJazz.playNoteProgression(1);
+  } else if (comfyJazz) {
+    // Play a note progression for regular chat messages
+    comfyJazz.playNoteProgression(1);
+  }
+};
+
+ComfyJS.onError = (err) => {
+  console.error("ComfyJS Error:", err);
+};

@@ -125,7 +125,7 @@
 
 		<fieldset class="control-group">
 			<legend>Automatic Notes</legend>
-			<div>
+			<div class="inline-checkbox-group">
 				<input type="checkbox" id="playAutoNotesCheckbox">
 				<label for="playAutoNotesCheckbox">Play Automatically</label>
 			</div>
@@ -140,6 +140,12 @@
 				<input type="range" id="autoNotesDelaySlider" min="50" max="1000" step="50">
 			</div>
 		</fieldset>
+
+		<!-- Add Streamer.bot Toggle here -->
+		<div class="control-group inline-checkbox-group">
+			<input type="checkbox" id="enableStreamerBotCheckbox" />
+			<label for="enableStreamerBotCheckbox" title="Requires Streamer.bot application running with WebSocket server enabled.">Enable Streamer.bot</label>
+		</div>
 
 		<!-- Add Reset Button -->
 		<div class="control-group reset-group">
