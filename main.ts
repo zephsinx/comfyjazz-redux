@@ -128,9 +128,7 @@ let isStreamerBotConnected = false;
 
 // Handler function for YouTube messages via Streamer.bot
 function handleYouTubeMessage(/* data: any */) { // data parameter available if needed later
-    console.log("YouTube message received via Streamer.bot, playing note...");
-    // Call the existing function to play a note progression
-    comfyJazz.playNoteProgression(1); // Use 1 note like ComfyJS does for chat/rewards
+    comfyJazz.playNoteProgression(1);
 }
 
 function connectStreamerBot() {
