@@ -126,37 +126,43 @@ comfyJazz.start();
 let sbClient: StreamerbotClient | null = null;
 let isStreamerBotConnected = false;
 
+// Handler function for YouTube messages via Streamer.bot
+function handleYouTubeMessage(/* data: any */) { // data parameter available if needed later
+    console.log("YouTube message received via Streamer.bot, playing note...");
+    // Call the existing function to play a note progression
+    comfyJazz.playNoteProgression(1); // Use 1 note like ComfyJS does for chat/rewards
+}
+
 function connectStreamerBot() {
   if (!enableStreamerBot) {
-      // console.log("Streamer.bot integration is disabled. Not connecting.");
       return; // Don't connect if the setting is off
   }
 
   if (sbClient && isStreamerBotConnected) {
-    // console.log("Streamer.bot client already connected.");
     return; // Already connected
   }
 
   if (sbClient) {
-      // Instance exists but not connected, just try connecting
+      // Instance exists but not connected
       console.log("Streamer.bot client exists, attempting connection...");
       sbClient.connect();
       return;
   }
 
-  // Instance doesn't exist, create it first
+  // Instance doesn't exist, create it
   console.log("Initializing and connecting Streamer.bot client...");
   try {
       sbClient = new StreamerbotClient({
           immediate: false, // We control connection timing
           onConnect: (data) => {
-              if (!enableStreamerBot) { // Check if disabled *during* connection attempt
+              if (!enableStreamerBot) {
                   disconnectStreamerBot();
                   return;
               }
               isStreamerBotConnected = true;
               console.log("Streamer.bot client connected successfully.", data);
-              // TODO: Add specific event listeners upon successful connect
+              console.log("Subscribing to YouTube.Message via Streamer.bot...");
+              sbClient?.on('YouTube.Message', handleYouTubeMessage);
           },
           onError: (error) => {
               if (isStreamerBotConnected) {
@@ -176,18 +182,15 @@ function connectStreamerBot() {
           }
       });
 
-      // *** Add desired event listeners here using sbClient.on(...) ***
-      // Example placeholder:
-      // sbClient.on('Twitch.Follow', (data) => { console.log('Follow!', data); comfyJazz.playNoteProgression(2); });
+      // *** TODO: Add desired event listeners here using sbClient.on(...) ***
 
-      // Now attempt the explicit connection for the newly created instance
+      // Attempt the explicit connection for the newly created instance
       sbClient.connect();
 
   } catch (error) {
     console.error("Failed to initialize Streamer.bot client instance:", error);
     sbClient = null;
     isStreamerBotConnected = false;
-    // Attempt to revert UI and state if initialization failed
     const sbCheckbox = document.querySelector<HTMLInputElement>("#enableStreamerBotCheckbox");
     if (sbCheckbox && enableStreamerBot) {
         enableStreamerBot = false;
@@ -199,7 +202,6 @@ function connectStreamerBot() {
 
 function disconnectStreamerBot() {
     if (sbClient) {
-        // console.log("Disconnecting Streamer.bot client...");
         sbClient.disconnect();
         sbClient = null; // Ensure instance is removed
     } else {
