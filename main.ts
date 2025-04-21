@@ -26,6 +26,7 @@ const STORAGE_KEY = "comfyJazzSettings_v2";
 
 interface SavedSettings extends Partial<ComfyJazzOptions> {
   enableStreamerBot?: boolean;
+  maxNotesPerEvent?: number;
 }
 
 function loadSettings(): SavedSettings {
@@ -42,7 +43,7 @@ function loadSettings(): SavedSettings {
   return {};
 }
 
-function saveSettings(cjSettings: ComfyJazzOptions, sbEnabled: boolean) {
+function saveSettings(cjSettings: ComfyJazzOptions, sbEnabled: boolean, maxNotes: number) {
   if (!cjSettings) return;
   try {
     const settingsToSave: SavedSettings = {
@@ -53,6 +54,7 @@ function saveSettings(cjSettings: ComfyJazzOptions, sbEnabled: boolean) {
       autoNotesDelay: cjSettings.autoNotesDelay,
       transpose: cjSettings.transpose,
       enableStreamerBot: sbEnabled,
+      maxNotesPerEvent: maxNotes,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settingsToSave));
   } catch (e) {
@@ -76,6 +78,7 @@ const defaultSettings: Required<SavedSettings> = {
   autoNotesDelay: 300,
   transpose: -5,
   enableStreamerBot: false,
+  maxNotesPerEvent: 7,
   baseUrl: "web/sounds",
   backgroundLoopUrl: "jazz_loop.ogg",
   backgroundLoopDuration: 27.428,
@@ -89,6 +92,7 @@ const initialSettings = {
 
 // State variable for streamer.bot toggle
 let enableStreamerBot = initialSettings.enableStreamerBot;
+let maxNotesPerEvent = initialSettings.maxNotesPerEvent;
 
 // Separate comfyJazz options from the combined settings
 const comfyJazzOptions: ComfyJazzOptions = {
@@ -108,11 +112,18 @@ let initialVolume: number = comfyJazzOptions.volume ?? defaultSettings.volume;
 // Override with URL params if present (URL params take highest priority for relevant settings)
 const instrumentParam: string | null = params.get("instrument");
 const volumeParam: string | null = params.get("volume");
+const maxNotesParam: string | null = params.get("maxnotes");
 if (volumeParam !== null) {
   const parsedVolume = parseFloat(volumeParam);
   if (!isNaN(parsedVolume)) {
     initialVolume = Math.max(0, Math.min(1, parsedVolume));
   }
+}
+if (maxNotesParam !== null) {
+    const parsedMaxNotes = parseInt(maxNotesParam, 10);
+    if (!isNaN(parsedMaxNotes)) {
+        maxNotesPerEvent = Math.max(0, Math.min(20, parsedMaxNotes));
+    }
 }
 // Assign URL params to the options passed to ComfyJazz
 comfyJazzOptions.instrument = instrumentParam ?? comfyJazzOptions.instrument;
@@ -127,8 +138,8 @@ let sbClient: StreamerbotClient | null = null;
 let isStreamerBotConnected = false;
 
 // Handler function for YouTube messages via Streamer.bot
-function handleYouTubeMessage(/* data: any */) { // data parameter available if needed later
-    comfyJazz.playNoteProgression(1);
+function handleYouTubeMessage(/* data: any */) {
+    comfyJazz.playNoteProgression((Math.random() * (maxNotesPerEvent + 1)) >> 0);
 }
 
 function connectStreamerBot() {
@@ -253,6 +264,7 @@ const transposeSlider =
   document.querySelector<HTMLInputElement>("#transposeSlider");
 const resetSettingsBtn =
   document.querySelector<HTMLButtonElement>("#resetSettingsBtn");
+const maxNotesInput = document.querySelector<HTMLInputElement>("#maxNotesInput");
 
 // Get references to value display spans
 const volumeValueSpan =
@@ -269,7 +281,7 @@ const transposeValueSpan = document.querySelector<HTMLSpanElement>(
 
 // Helper to save current state
 function saveCurrentSettings() {
-    saveSettings(comfyJazz, enableStreamerBot);
+    saveSettings(comfyJazz, enableStreamerBot, maxNotesPerEvent);
 }
 
 // --- Event Listeners for Controls ---
@@ -444,20 +456,39 @@ if (transposeSlider && transposeValueSpan) {
   });
 }
 
+// Max Notes Per Event Input Listener
+if (maxNotesInput /* && maxNotesValueSpan */) {
+    const debouncedSetMaxNotes = debounce((value: number) => {
+        maxNotesPerEvent = value;
+        saveCurrentSettings();
+    }, 100);
+
+    maxNotesInput.addEventListener("input", (e) => {
+        const target = e.currentTarget as HTMLInputElement;
+        let newValue = parseInt(target.value, 10);
+
+        if (isNaN(newValue)) {
+            newValue = defaultSettings.maxNotesPerEvent;
+        }
+        newValue = Math.max(0, Math.min(20, newValue));
+
+        if (String(newValue) !== target.value) {
+             target.value = String(newValue);
+        }
+
+        debouncedSetMaxNotes(newValue);
+    });
+}
+
 // Reset Settings Button
 if (resetSettingsBtn) {
   resetSettingsBtn.addEventListener("click", () => {
-    // Only clear comfyJazz related settings from localStorage
-    // We need to load existing settings, clear the comfy ones, then save back.
     const currentSettings = loadSettings();
     const settingsToKeep: SavedSettings = {
         enableStreamerBot: currentSettings.enableStreamerBot ?? defaultSettings.enableStreamerBot,
-        // Potentially keep other non-comfyJazz settings here if any existed
     };
-    // Overwrite localStorage with only the settings we want to keep
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settingsToKeep));
 
-    // Reset ONLY comfyJazz internal state to defaults using defaultSettings
     comfyJazz.setInstrument(defaultSettings.instrument);
     comfyJazz.setVolume(defaultSettings.volume);
     comfyJazz.setPlayAutoNotes(defaultSettings.playAutoNotes);
@@ -465,12 +496,9 @@ if (resetSettingsBtn) {
     comfyJazz.setAutoNotesDelay(defaultSettings.autoNotesDelay);
     comfyJazz.setTranspose(defaultSettings.transpose);
 
-    // Update the UI based on the reset state
-    // Note: This will NOT reset the Streamer.bot checkbox UI, as intended
-    initializeControls();
+    maxNotesPerEvent = defaultSettings.maxNotesPerEvent;
 
-    // Do NOT reset the enableStreamerBot state variable
-    // Do NOT disconnect streamerbot
+    initializeControls();
   });
 }
 
@@ -509,7 +537,7 @@ window.addEventListener("keydown", (e: KeyboardEvent): void => {
       document.activeElement instanceof HTMLSelectElement
     )
   ) {
-    comfyJazz.playNoteProgression((Math.random() * 8) >> 0);
+    comfyJazz.playNoteProgression((Math.random() * (maxNotesPerEvent + 1)) >> 0);
   }
 });
 
@@ -559,6 +587,7 @@ window.addEventListener("storage", (event) => {
       // Update the streamerbot state variable
       const sbSettingChanged = enableStreamerBot !== mergedSettings.enableStreamerBot;
       enableStreamerBot = mergedSettings.enableStreamerBot;
+      maxNotesPerEvent = mergedSettings.maxNotesPerEvent;
 
       if (comfyJazz) {
         // Update internal comfyJazz state
@@ -627,7 +656,8 @@ function initializeControls() {
     !toggleMultiInstrument ||
     !instrumentRadioContainer ||
     !instrumentCheckboxContainer ||
-    !enableStreamerBotCheckbox
+    !enableStreamerBotCheckbox ||
+    !maxNotesInput
   )
     return;
 
@@ -711,6 +741,9 @@ function initializeControls() {
       }
     }
   }
+
+  // --- Initialize Max Notes Input ---
+  maxNotesInput.value = String(maxNotesPerEvent);
 }
 
 // Initialize controls once the DOM is ready (or immediately if already loaded)
@@ -722,13 +755,11 @@ if (document.readyState === "loading") {
 
 // --- ComfyJS Event Handlers ---
 ComfyJS.onChat = (_user, _message, _flags, _self, extra) => {
+  const notesToPlay = (Math.random() * (maxNotesPerEvent + 1)) >> 0;
   if (comfyJazz && extra.customRewardId) {
-    // Play a note progression for channel point rewards
-    // console.log("Reward redeemed:", extra.customRewardId);
-    comfyJazz.playNoteProgression(1);
+    comfyJazz.playNoteProgression(notesToPlay);
   } else if (comfyJazz) {
-    // Play a note progression for regular chat messages
-    comfyJazz.playNoteProgression(1);
+    comfyJazz.playNoteProgression(notesToPlay);
   }
 };
 
