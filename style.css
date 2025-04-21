@@ -63,7 +63,7 @@
 
 /* Control Grouping */
 .control-group {
-  margin-bottom: 15px;
+  margin-bottom: 1em; /* Ensure spacing between groups */
 }
 
 .control-group label,
@@ -286,4 +286,18 @@ label[for="playAutoNotesCheckbox"] {
     margin-bottom: 0;
     font-size: 0.9em;
     cursor: pointer;
+}
+
+/* Style for inline checkbox groups */
+.inline-checkbox-group {
+  display: flex; /* Arrange checkbox and label horizontally */
+  align-items: center; /* Vertically align items in the middle */
+  gap: 0.5em; /* Add some space between checkbox and label */
+  margin-bottom: 0.5em; /* Reduce bottom margin slightly for tighter packing if needed */
+}
+
+/* Optional: Ensure label doesn't take up full width if it was block before */
+.inline-checkbox-group label {
+  display: inline; /* Or inline-block if more control needed */
+  margin: 0; /* Reset any default margins */
 }
