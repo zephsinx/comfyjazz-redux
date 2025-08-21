@@ -131,7 +131,7 @@ function playNoteSound(
         onplayerror: function (_id, err) {
           console.error(`Error playing sound ${url}:`, err);
           resolve(); // Resolve anyway
-        }
+        },
       });
       noteSoundCache.set(url, noteSound);
       noteSound.play();
@@ -149,71 +149,99 @@ function playBackgroundSound(
   volume: number = 1,
   rate: number = 1
 ): Promise<void> {
-    return new Promise<void>((resolve, _reject) => {
-      // Stop and unload previous background sound if it exists
+  return new Promise<void>((resolve, _reject) => {
+    const attemptStart = (attempt: number): void => {
       globalInstanceRef?.backgroundSound?.stop();
       globalInstanceRef?.backgroundSound?.unload();
 
       const backgroundSound = new Howl({
         src: [url],
         volume: volume,
-        rate: rate, // Apply rate
-        loop: true, // Ensure it loops
-        onend: function () { // Should not trigger if loop: true, but good practice
+        loop: true,
+        html5: true,
+        onend: function () {
           resolve();
         },
         onloaderror: function (_id, err) {
           console.error(`Error loading background sound ${url}:`, err);
-          resolve();
+          if (attempt < 1) {
+            setTimeout(() => attemptStart(attempt + 1), 300);
+          } else {
+            resolve();
+          }
         },
         onplayerror: function (_id, err) {
-           console.error(`Error playing background sound ${url}:`, err);
-           resolve();
-        }
+          console.error(`Error playing background sound ${url}:`, err);
+          if (attempt < 1) {
+            setTimeout(() => attemptStart(attempt + 1), 300);
+          } else {
+            resolve();
+          }
+        },
       });
-      // backgroundSound.rate(rate); // Rate set in constructor now
+      if (globalInstanceRef)
+        globalInstanceRef.backgroundSound = backgroundSound;
       backgroundSound.play();
-      if (globalInstanceRef) globalInstanceRef.backgroundSound = backgroundSound;
-    });
-  }
 
+      setTimeout(() => {
+        if (!backgroundSound.playing()) {
+          try {
+            backgroundSound.stop();
+            backgroundSound.unload();
+          } catch {}
+          if (attempt < 1) {
+            setTimeout(() => attemptStart(attempt + 1), 300);
+          } else {
+            resolve();
+          }
+        }
+      }, 800);
+    };
+
+    attemptStart(0);
+  });
+}
 
 // --- Worker Setup ---
 let noteWorker: Worker | null = null;
 if (window.Worker) {
-  noteWorker = new Worker(new URL('./note-worker.ts', import.meta.url), {
-    type: 'module'
+  noteWorker = new Worker(new URL("./note-worker.ts", import.meta.url), {
+    type: "module",
   });
   console.log("Note worker created.");
 
   noteWorker.onmessage = (event: MessageEvent<WorkerSoundData>) => {
     const { url, playbackRate } = event.data;
-    if (url && playbackRate && globalInstanceRef) { // Check globalInstanceRef
-      // --- Fix multi-instrument selection --- 
+    if (url && playbackRate && globalInstanceRef) {
+      // Check globalInstanceRef
+      // --- Fix multi-instrument selection ---
       const instrumentList = globalInstanceRef.instrument
         .split(",")
-        .map(x => x.trim())
+        .map((x) => x.trim())
         .filter(Boolean); // Remove empty strings if user inputs e.g. "piano, "
-      
-      let selectedInstrument = 'piano'; // Default instrument
+
+      let selectedInstrument = "piano"; // Default instrument
       if (instrumentList.length > 0) {
-        selectedInstrument = instrumentList[getRandomInt(instrumentList.length)];
+        selectedInstrument =
+          instrumentList[getRandomInt(instrumentList.length)];
       }
       // --- End fix ---
 
-      const baseUrl = globalInstanceRef.baseUrl || 'web/sounds';
+      const baseUrl = globalInstanceRef.baseUrl || "web/sounds";
       const fullUrl = `${baseUrl}/${selectedInstrument}/${url}.ogg`; // Use selectedInstrument
       const volume = globalInstanceRef.volume ?? 1;
       playNoteSound(fullUrl, volume, playbackRate); // Call module-scoped function
     } else {
-      console.error("Main thread received invalid data from worker or instance not ready:", event.data);
+      console.error(
+        "Main thread received invalid data from worker or instance not ready:",
+        event.data
+      );
     }
   };
 
   noteWorker.onerror = (error) => {
     console.error("Error in note worker:", error);
   };
-
 } else {
   console.error("Web Workers are not supported in this browser.");
 }
@@ -257,41 +285,51 @@ const ComfyJazz = (options: ComfyJazzOptions = {}): ComfyJazzInstance => {
     playNote: playNoteWithRandomDelay,
 
     setInstrument: (instrumentName: string): void => {
-        if (typeof instrumentName === 'string' && instrumentName.trim().length > 0) {
-            const newInstrument = instrumentName.trim();
-            if (newInstrument !== cj.instrument) {
-                noteSoundCache.forEach((sound) => sound.unload());
-                noteSoundCache.clear();
-                cj.instrument = newInstrument;
-            }
-        } else {
-            console.warn(
-                `Invalid instrument name provided: ${instrumentName}. Using previous: ${cj.instrument}`
-            );
+      if (
+        typeof instrumentName === "string" &&
+        instrumentName.trim().length > 0
+      ) {
+        const newInstrument = instrumentName.trim();
+        if (newInstrument !== cj.instrument) {
+          noteSoundCache.forEach((sound) => sound.unload());
+          noteSoundCache.clear();
+          cj.instrument = newInstrument;
         }
+      } else {
+        console.warn(
+          `Invalid instrument name provided: ${instrumentName}. Using previous: ${cj.instrument}`
+        );
+      }
     },
     setPlayAutoNotes: (play: boolean): void => {
       cj.playAutoNotes = !!play;
     },
     setAutoNotesChance: (chance: number): void => {
-      if (typeof chance === 'number' && !isNaN(chance)) {
-         cj.autoNotesChance = Math.max(0, Math.min(1, chance));
+      if (typeof chance === "number" && !isNaN(chance)) {
+        cj.autoNotesChance = Math.max(0, Math.min(1, chance));
       } else {
-         console.warn(`Invalid autoNotesChance provided: ${chance}. Using previous: ${cj.autoNotesChance}`);
+        console.warn(
+          `Invalid autoNotesChance provided: ${chance}. Using previous: ${cj.autoNotesChance}`
+        );
       }
     },
     setAutoNotesDelay: (delay: number): void => {
-      if (typeof delay === 'number' && !isNaN(delay) && delay >= 0) {
-         cj.autoNotesDelay = Math.max(50, Math.round(delay));
+      if (typeof delay === "number" && !isNaN(delay) && delay >= 0) {
+        cj.autoNotesDelay = Math.max(50, Math.round(delay));
       } else {
-         console.warn(`Invalid autoNotesDelay provided: ${delay}. Using previous: ${cj.autoNotesDelay}`);
+        console.warn(
+          `Invalid autoNotesDelay provided: ${delay}. Using previous: ${cj.autoNotesDelay}`
+        );
       }
     },
     setTranspose: (semitones: number): void => {
-      if (typeof semitones === 'number' && !isNaN(semitones)) {
+      if (typeof semitones === "number" && !isNaN(semitones)) {
         const newTranspose = Math.round(semitones);
         cj.transpose = newTranspose;
-        noteWorker?.postMessage({ type: "setState", payload: { transpose: newTranspose } });
+        noteWorker?.postMessage({
+          type: "setState",
+          payload: { transpose: newTranspose },
+        });
       } else {
         console.warn(
           `Invalid transpose value provided: ${semitones}. Using previous: ${cj.transpose}`
@@ -306,7 +344,10 @@ const ComfyJazz = (options: ComfyJazzOptions = {}): ComfyJazzInstance => {
   let currentScaleProgression: number = 0;
 
   async function startComfyJazz(): Promise<void> {
-    noteWorker?.postMessage({ type: "setState", payload: { transpose: cj.transpose } });
+    noteWorker?.postMessage({
+      type: "setState",
+      payload: { transpose: cj.transpose },
+    });
 
     // let startTime: number = performance.now(); // startTime no longer needed for loop logic
     // Use module-scoped playBackgroundSound - it will loop automatically
@@ -319,11 +360,12 @@ const ComfyJazz = (options: ComfyJazzOptions = {}): ComfyJazzInstance => {
       const bgSound = globalInstanceRef?.backgroundSound;
       let currentTime = 0;
       if (bgSound && bgSound.playing()) {
-          currentTime = bgSound.seek() as number; // Get current playback position
+        currentTime = bgSound.seek() as number; // Get current playback position
       } else {
-          // Fallback or initial state if sound isn't playing yet
-          // This part might need refinement depending on desired behavior before loop starts
-          currentTime = (performance.now() % (cj.backgroundLoopDuration * 1000)) / 1000;
+        // Fallback or initial state if sound isn't playing yet
+        // This part might need refinement depending on desired behavior before loop starts
+        currentTime =
+          (performance.now() % (cj.backgroundLoopDuration * 1000)) / 1000;
       }
 
       // Determine current scale progression index
@@ -339,8 +381,8 @@ const ComfyJazz = (options: ComfyJazzOptions = {}): ComfyJazzInstance => {
         }
       }
       if (!foundProgression) {
-          // If seek time is beyond the last progression end, loop back or default
-          currentScaleProgression = 0; 
+        // If seek time is beyond the last progression end, loop back or default
+        currentScaleProgression = 0;
       }
 
       // Request note from worker if auto-play enabled
@@ -359,15 +401,15 @@ const ComfyJazz = (options: ComfyJazzOptions = {}): ComfyJazzInstance => {
     maxRandom: number = 200
   ): Promise<void> {
     setTimeout(() => {
-        if (!noteWorker) {
-            console.error("Note worker not available.");
-            return;
-        }
-        noteWorker.postMessage({ 
-            type: "generateNote", 
-            // Send current progression index to worker
-            payload: { currentScaleProgression: currentScaleProgression } 
-        });
+      if (!noteWorker) {
+        console.error("Note worker not available.");
+        return;
+      }
+      noteWorker.postMessage({
+        type: "generateNote",
+        // Send current progression index to worker
+        payload: { currentScaleProgression: currentScaleProgression },
+      });
     }, minRandom + Math.random() * maxRandom);
   }
 

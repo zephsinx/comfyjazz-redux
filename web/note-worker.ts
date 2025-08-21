@@ -91,9 +91,9 @@ function getScaleAdjustedPatternNote(currentScale: ScaleName): number {
   // Ensure scale exists
   const currentScaleData = scales[currentScale];
   if (!currentScaleData) {
-      console.error("Worker: Invalid scale selected", currentScale);
-      // Potentially default to a known scale or handle error
-      return 60; // Default to C4
+    console.error("Worker: Invalid scale selected", currentScale);
+    // Potentially default to a known scale or handle error
+    return 60; // Default to C4
   }
   const scaleAdjustment: number = currentScaleData[patternNote % 12];
   const scaleAdjustedNote: number = patternNote + scaleAdjustment;
@@ -111,26 +111,26 @@ function adjustNoteToScale(noteValue: number, targetNotes: number[]): number {
     // Calculate difference carefully, considering wrap-around (e.g., diff between 11 and 0)
     let diff = noteIndex - closestTargetIndex;
     if (Math.abs(diff) > 6) {
-        diff = diff > 0 ? diff - 12 : diff + 12;
+      diff = diff > 0 ? diff - 12 : diff + 12;
     }
     let adjustedNote: number = noteValue - diff; // Adjust towards the closest target
 
     // Recalculate scale adjustment based on the *new* note's position
     const newNoteIndex = ((adjustedNote % 12) + 12) % 12;
-     const scaleAdjustment: number = scales[scale] ? scales[scale][newNoteIndex] : 0;
+    const scaleAdjustment: number = scales[scale]
+      ? scales[scale][newNoteIndex]
+      : 0;
     noteValue = adjustedNote + scaleAdjustment;
-
   }
   return noteValue;
 }
 
 function getNoteFromSemitone(tone: number): NoteItem | undefined {
-    return notes.find(
-      (note: NoteItem) =>
-        note.metaData.startRange <= tone && tone <= note.metaData.endRange
-    );
-  }
-
+  return notes.find(
+    (note: NoteItem) =>
+      note.metaData.startRange <= tone && tone <= note.metaData.endRange
+  );
+}
 
 function selectNextNoteWorker(): WorkerSoundData {
   // Check if it's time to change the melodic pattern
@@ -147,9 +147,13 @@ function selectNextNoteWorker(): WorkerSoundData {
   // TODO: Need to pass current time from main thread or manage time differently
   // For now, let's assume we can derive currentScaleProgression somehow
   // Placeholder: Using the worker's state directly - might need refinement
-  const progression: ScaleProgressionItem = scaleProgression[currentScaleProgression];
+  const progression: ScaleProgressionItem =
+    scaleProgression[currentScaleProgression];
   if (!progression) {
-    console.error("Worker: Invalid currentScaleProgression", currentScaleProgression);
+    console.error(
+      "Worker: Invalid currentScaleProgression",
+      currentScaleProgression
+    );
     currentScaleProgression = 0; // Reset to default
     return { url: "note_48", playbackRate: 1 }; // Default
   }
@@ -162,11 +166,14 @@ function selectNextNoteWorker(): WorkerSoundData {
   }
 
   if (progression.root !== lastRoot) {
-      if (progression.targetNotes && progression.targetNotes.length > 0) {
-          noteNumber = adjustNoteToScale(noteNumber, progression.targetNotes);
-      } else {
-          console.warn("Worker: targetNotes missing or empty for progression", currentScaleProgression);
-      }
+    if (progression.targetNotes && progression.targetNotes.length > 0) {
+      noteNumber = adjustNoteToScale(noteNumber, progression.targetNotes);
+    } else {
+      console.warn(
+        "Worker: targetNotes missing or empty for progression",
+        currentScaleProgression
+      );
+    }
   }
 
   const midiNote: number = noteNumber || 48;
@@ -176,7 +183,8 @@ function selectNextNoteWorker(): WorkerSoundData {
     console.error(
       `Worker: Could not find note data for MIDI note: ${midiNote}. Using default.`
     );
-    const defaultNote = notes.find((n) => n.url === "note_48") || notes[notes.length - 1];
+    const defaultNote =
+      notes.find((n) => n.url === "note_48") || notes[notes.length - 1];
     const semitoneOffset = midiNote - defaultNote.metaData.root;
     return {
       url: defaultNote.url,
@@ -213,7 +221,7 @@ self.onmessage = (event: MessageEvent<WorkerMessage>) => {
       self.postMessage(soundData);
       break;
     case "setState":
-      if (payload && typeof payload.transpose === 'number') {
+      if (payload && typeof payload.transpose === "number") {
         workerState.transpose = payload.transpose;
       }
       // Update other state elements as needed
@@ -223,4 +231,4 @@ self.onmessage = (event: MessageEvent<WorkerMessage>) => {
   }
 };
 
-console.log("Note worker initialized."); 
+console.log("Note worker initialized.");
