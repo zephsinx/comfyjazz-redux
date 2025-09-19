@@ -76,6 +76,45 @@ export interface ComfyJazzInstance {
 const noteSoundCache = new Map<string, Howl>();
 let globalInstanceRef: ComfyJazzInstance | null = null; // Reference to the current instance for context
 
+// Background loop start guards/state (module-scoped)
+let bgStartToken: number = 0;
+let bgStartInFlight: Promise<void> | null = null;
+let bgRetryTimer: number | null = null;
+let currentBgUrl: string | null = null;
+let bgSoundOwnerToken: number | null = null;
+
+// Resume handlers to start loop after user interaction (autoplay gating)
+let bgResumeHandlersAttached: boolean = false;
+const bgResumeEvents: Array<keyof WindowEventMap> = [
+  "pointerdown",
+  "touchstart",
+  "keydown",
+];
+function detachBgResumeHandlers(): void {
+  if (!bgResumeHandlersAttached) return;
+  bgResumeEvents.forEach((t) =>
+    window.removeEventListener(t, onUserResume, true)
+  );
+  document.removeEventListener("visibilitychange", onUserResume, true);
+  bgResumeHandlersAttached = false;
+}
+function onUserResume(): void {
+  const snd = globalInstanceRef?.backgroundSound || null;
+  if (snd && snd.playing()) {
+    detachBgResumeHandlers();
+    return;
+  }
+  if (currentBgUrl && globalInstanceRef) {
+    playBackgroundSound(currentBgUrl, globalInstanceRef.volume, 1);
+  }
+}
+function attachBgResumeHandlers(): void {
+  if (bgResumeHandlersAttached) return;
+  bgResumeEvents.forEach((t) => window.addEventListener(t, onUserResume, true));
+  document.addEventListener("visibilitychange", onUserResume, true);
+  bgResumeHandlersAttached = true;
+}
+
 // --- Utility Functions (needed at module scope) ---
 /**
  * Generates a random integer between 0 (inclusive) and maxExclusive (exclusive).
@@ -149,57 +188,149 @@ function playBackgroundSound(
   volume: number = 1,
   rate: number = 1
 ): Promise<void> {
-  return new Promise<void>((resolve, _reject) => {
-    const attemptStart = (attempt: number): void => {
-      globalInstanceRef?.backgroundSound?.stop();
-      globalInstanceRef?.backgroundSound?.unload();
+  // If the same URL is already playing, do nothing
+  if (currentBgUrl === url && globalInstanceRef?.backgroundSound?.playing()) {
+    return Promise.resolve();
+  }
+
+  // If a start is already in-flight for the same URL, return it
+  if (bgStartInFlight && currentBgUrl === url) {
+    return bgStartInFlight;
+  }
+
+  currentBgUrl = url;
+  const myToken = ++bgStartToken;
+
+  bgStartInFlight = new Promise<void>((resolve) => {
+    const startAttempt = (attempt: number): void => {
+      if (myToken !== bgStartToken) {
+        resolve();
+        return;
+      }
+
+      const existing = globalInstanceRef?.backgroundSound || null;
+      if (existing) {
+        const shouldReplace =
+          !existing.playing() ||
+          currentBgUrl !== url ||
+          bgSoundOwnerToken === myToken;
+        if (shouldReplace) {
+          try {
+            existing.stop();
+          } catch {}
+          try {
+            existing.unload();
+          } catch {}
+        } else {
+          resolve();
+          return;
+        }
+      }
+
+      let localStartTimeout: number | null = null;
 
       const backgroundSound = new Howl({
         src: [url],
         volume: volume,
         loop: true,
         html5: true,
-        onend: function () {
-          resolve();
+        preload: true,
+        onplay: function () {
+          if (myToken === bgStartToken) {
+            if (bgRetryTimer) {
+              clearTimeout(bgRetryTimer);
+              bgRetryTimer = null;
+            }
+            if (localStartTimeout) {
+              clearTimeout(localStartTimeout);
+              localStartTimeout = null;
+            }
+            bgSoundOwnerToken = myToken;
+            detachBgResumeHandlers();
+          } else {
+            try {
+              backgroundSound.stop();
+            } catch {}
+            try {
+              backgroundSound.unload();
+            } catch {}
+          }
         },
         onloaderror: function (_id, err) {
           console.error(`Error loading background sound ${url}:`, err);
-          if (attempt < 1) {
-            setTimeout(() => attemptStart(attempt + 1), 300);
-          } else {
-            resolve();
-          }
+          scheduleRetry(attempt, backgroundSound);
         },
         onplayerror: function (_id, err) {
           console.error(`Error playing background sound ${url}:`, err);
-          if (attempt < 1) {
-            setTimeout(() => attemptStart(attempt + 1), 300);
-          } else {
-            resolve();
-          }
+          scheduleRetry(attempt, backgroundSound);
+        },
+        onend: function () {
+          resolve();
         },
       });
-      if (globalInstanceRef)
+
+      if (globalInstanceRef && myToken === bgStartToken) {
         globalInstanceRef.backgroundSound = backgroundSound;
+      }
       backgroundSound.play();
 
-      setTimeout(() => {
+      localStartTimeout = window.setTimeout(() => {
+        if (myToken !== bgStartToken) {
+          resolve();
+          return;
+        }
         if (!backgroundSound.playing()) {
           try {
             backgroundSound.stop();
+          } catch {}
+          try {
             backgroundSound.unload();
           } catch {}
           if (attempt < 1) {
-            setTimeout(() => attemptStart(attempt + 1), 300);
+            bgRetryTimer = window.setTimeout(
+              () => startAttempt(attempt + 1),
+              1000
+            );
           } else {
             resolve();
           }
         }
-      }, 800);
+      }, 1200);
+
+      function scheduleRetry(currentAttempt: number, snd: Howl): void {
+        if (myToken !== bgStartToken) {
+          resolve();
+          return;
+        }
+        try {
+          snd.stop();
+        } catch {}
+        try {
+          snd.unload();
+        } catch {}
+        if (localStartTimeout) {
+          clearTimeout(localStartTimeout);
+          localStartTimeout = null;
+        }
+        if (currentAttempt < 1) {
+          bgRetryTimer = window.setTimeout(
+            () => startAttempt(currentAttempt + 1),
+            1000
+          );
+        } else {
+          resolve();
+        }
+      }
     };
 
-    attemptStart(0);
+    startAttempt(0);
+  }).finally(() => {
+    if (myToken === bgStartToken) {
+      bgStartInFlight = null;
+    }
   });
+
+  return bgStartInFlight;
 }
 
 // --- Worker Setup ---
@@ -352,6 +483,8 @@ const ComfyJazz = (options: ComfyJazzOptions = {}): ComfyJazzInstance => {
     // let startTime: number = performance.now(); // startTime no longer needed for loop logic
     // Use module-scoped playBackgroundSound - it will loop automatically
     playBackgroundSound(`${cj.baseUrl}/${cj.backgroundLoopUrl}`, cj.volume, 1);
+    // Attach resume handlers so a later user gesture can start playback if blocked
+    attachBgResumeHandlers();
 
     const AutomaticPlayNote = async (): Promise<void> => {
       // Determine current scale progression index based on elapsed time within the loop
