@@ -1,0 +1,466 @@
+/* OBS Dock Specific Styling - Compact Layout for Browser Dock */
+
+/* Reset and Base Styles */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #222;
+  background-color: #f8f8f8;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* OBS Dock Container */
+.obs-dock {
+  width: 100%;
+  max-width: 400px;
+  min-width: 200px;
+  padding: 10px;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Header */
+.obs-header {
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #ddd;
+  text-align: center;
+}
+
+.obs-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #222;
+}
+
+/* Control Groups - Compact Spacing */
+.obs-control-group {
+  margin-bottom: 10px;
+}
+
+.obs-control-group:last-child {
+  margin-bottom: 0;
+}
+
+.obs-control-group label,
+.obs-control-group legend {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #222;
+}
+
+/* Form Elements - Accessible Sizing */
+input[type="range"],
+input[type="number"],
+input[type="checkbox"],
+input[type="radio"] {
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+input[type="range"] {
+  width: calc(100% - 10px);
+  height: 6px;
+  margin: 4px 0;
+}
+
+input[type="number"] {
+  width: 80px;
+  padding: 4px 6px;
+  border: 1px solid #999;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #222;
+  background-color: #fff;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* Fieldsets - Compact */
+fieldset {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 8px 10px;
+  margin: 0;
+}
+
+fieldset legend {
+  padding: 0 6px;
+  margin-left: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+fieldset > div {
+  margin-bottom: 8px;
+}
+
+fieldset > div:last-child {
+  margin-bottom: 0;
+}
+
+/* Slider Value Display */
+.obs-slider-value {
+  display: inline-block;
+  min-width: 3em;
+  text-align: right;
+  font-weight: normal;
+  margin-left: 6px;
+  background-color: #e8e8e8;
+  color: #222;
+  padding: 3px 6px;
+  border-radius: 3px;
+  font-size: 13px;
+}
+
+/* Instrument Selection - Accessible Grid */
+.obs-instrument-section legend {
+  margin-bottom: 8px;
+}
+
+.obs-instrument-mode-toggle {
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+}
+
+.obs-instrument-mode-toggle input[type="checkbox"] {
+  margin-right: 6px;
+}
+
+.obs-instrument-mode-toggle label {
+  font-weight: normal;
+  font-size: 14px;
+  margin-bottom: 0;
+  cursor: pointer;
+}
+
+.obs-instrument-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 6px;
+  max-height: 140px;
+  overflow-y: auto;
+  padding: 6px;
+  background-color: #e8e8e8;
+  border-radius: 4px;
+}
+
+.obs-instrument-container.hide {
+  display: none;
+}
+
+.obs-instrument-row {
+  display: flex;
+  align-items: center;
+}
+
+.obs-instrument-row input[type="radio"],
+.obs-instrument-row input[type="checkbox"] {
+  margin-right: 6px;
+  cursor: pointer;
+}
+
+.obs-instrument-row label {
+  font-weight: normal;
+  margin-bottom: 0;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Inline Checkbox Groups */
+.obs-inline-checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.obs-inline-checkbox-group label {
+  display: inline;
+  margin: 0;
+  font-size: 14px;
+  font-weight: normal;
+}
+
+/* Slider Groups */
+.obs-slider-group {
+  margin-bottom: 6px;
+}
+
+.obs-slider-group label {
+  font-size: 14px;
+  margin-bottom: 3px;
+}
+
+/* Number Input Styling */
+.obs-number-input {
+  width: 80px;
+  padding: 4px 6px;
+  border: 1px solid #999;
+  border-radius: 4px;
+  font-size: 14px;
+  text-align: center;
+  color: #222;
+  background-color: #fff;
+}
+
+/* Reset Button */
+.obs-reset-group {
+  margin-top: 12px;
+  text-align: center;
+}
+
+.obs-reset-btn {
+  padding: 10px 20px;
+  background-color: #495057;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.obs-reset-btn:hover {
+  background-color: #343a40;
+}
+
+.obs-reset-btn:active {
+  background-color: #212529;
+}
+
+/* Hide Utility */
+.hide {
+  display: none;
+}
+
+/* Responsive Design for Different Dock Sizes */
+@media (max-width: 300px) {
+  .obs-dock {
+    padding: 8px;
+  }
+
+  .obs-instrument-container {
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 5px;
+    max-height: 130px;
+  }
+
+  .obs-instrument-row label {
+    font-size: 13px;
+  }
+
+  .obs-control-group label,
+  .obs-control-group legend {
+    font-size: 13px;
+  }
+
+  .obs-slider-value {
+    font-size: 12px;
+    min-width: 2.8em;
+  }
+}
+
+@media (max-width: 250px) {
+  .obs-dock {
+    padding: 6px;
+  }
+
+  .obs-instrument-container {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 4px;
+    max-height: 120px;
+  }
+
+  .obs-instrument-row label {
+    font-size: 12px;
+  }
+
+  .obs-control-group label,
+  .obs-control-group legend {
+    font-size: 12px;
+  }
+
+  .obs-slider-value {
+    font-size: 11px;
+    min-width: 2.5em;
+  }
+}
+
+@media (max-width: 200px) {
+  .obs-dock {
+    padding: 4px;
+  }
+
+  .obs-instrument-container {
+    grid-template-columns: 1fr;
+    max-height: 100px;
+  }
+
+  .obs-header h3 {
+    font-size: 16px;
+  }
+
+  .obs-control-group {
+    margin-bottom: 8px;
+  }
+
+  .obs-instrument-row label {
+    font-size: 11px;
+  }
+
+  .obs-control-group label,
+  .obs-control-group legend {
+    font-size: 11px;
+  }
+}
+
+/* Hover States and Visual Feedback */
+.obs-instrument-row:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 3px;
+}
+
+.obs-reset-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+input[type="range"]:hover {
+  cursor: pointer;
+}
+
+input[type="checkbox"]:hover,
+input[type="radio"]:hover {
+  transform: scale(1.1);
+}
+
+/* Focus States for Accessibility */
+input[type="range"]:focus,
+input[type="number"]:focus,
+input[type="checkbox"]:focus,
+input[type="radio"]:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+.obs-reset-btn:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+/* Scrollbar Styling for Instrument Container */
+.obs-instrument-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.obs-instrument-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.obs-instrument-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.obs-instrument-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  .obs-dock {
+    border: 2px solid #000;
+  }
+
+  .obs-control-group label,
+  .obs-control-group legend {
+    color: #000;
+    font-weight: 700;
+  }
+
+  .obs-slider-value {
+    background-color: #fff;
+    border: 1px solid #000;
+    color: #000;
+  }
+
+  .obs-number-input {
+    border: 2px solid #000;
+    color: #000;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+  }
+
+  .obs-dock {
+    background-color: #3d3d3d;
+    border-color: #555;
+  }
+
+  .obs-header h3 {
+    color: #e0e0e0;
+  }
+
+  .obs-control-group label,
+  .obs-control-group legend {
+    color: #e0e0e0;
+  }
+
+  fieldset {
+    border-color: #555;
+  }
+
+  .obs-instrument-container {
+    background-color: #4d4d4d;
+  }
+
+  .obs-slider-value {
+    background-color: #555;
+    color: #e0e0e0;
+  }
+
+  .obs-number-input {
+    background-color: #4d4d4d;
+    border-color: #666;
+    color: #e0e0e0;
+  }
+
+  .obs-reset-btn {
+    background-color: #555;
+  }
+
+  .obs-reset-btn:hover {
+    background-color: #666;
+  }
+}

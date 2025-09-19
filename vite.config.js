@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  base: '/',
+  base: "/",
 
   // Development server configuration
   server: {
@@ -16,5 +16,11 @@ export default defineConfig({
     assetsDir: "assets", // Directory for static assets
     emptyOutDir: true, // Clean the output directory before build
     sourcemap: true,
+    rollupOptions: {
+      input: {
+        main: "index.html",
+        "obs-dock": "obs-dock.html",
+      },
+    },
   },
 });

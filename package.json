@@ -8,7 +8,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "vite preview"
+    "start": "vite preview",
+    "build:obs": "vite build && echo 'OBS dock available at: http://localhost:8901/obs-dock.html'",
+    "preview:obs": "vite preview --open /obs-dock.html"
   },
   "repository": {
     "type": "git",

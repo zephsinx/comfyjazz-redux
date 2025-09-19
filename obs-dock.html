@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ComfyJazz OBS Dock</title>
+    <link rel="stylesheet" href="obs-dock.css">
+    <script type="module" src="./obs-dock.ts"></script>
+</head>
+
+<body>
+    <div id="obs-dock-container" class="obs-dock">
+        <div class="obs-header">
+            <h3>ComfyJazz</h3>
+        </div>
+
+        <!-- Instrument Selection Area -->
+        <fieldset class="obs-control-group obs-instrument-section">
+            <legend>Instrument</legend>
+            <div class="obs-instrument-mode-toggle">
+                <input type="checkbox" id="obs-toggleMultiInstrument">
+                <label for="obs-toggleMultiInstrument">Multi</label>
+            </div>
+
+            <!-- Radio Button Container (Single Select - Default) -->
+            <div id="obs-instrumentRadioContainer" class="obs-instrument-container">
+                <div class="obs-instrument-row">
+                    <input type="radio" id="obs-instr-radio-piano" name="obs-instrumentSingle" value="piano" checked>
+                    <label for="obs-instr-radio-piano">Piano</label>
+                </div>
+                <div class="obs-instrument-row">
+                    <input type="radio" id="obs-instr-radio-vibraphone" name="obs-instrumentSingle" value="vibraphone">
+                    <label for="obs-instr-radio-vibraphone">Vibraphone</label>
+                </div>
+                <div class="obs-instrument-row">
+                    <input type="radio" id="obs-instr-radio-twinkle" name="obs-instrumentSingle" value="twinkle">
+                    <label for="obs-instr-radio-twinkle">Twinkle</label>
+                </div>
+                <div class="obs-instrument-row">
+                    <input type="radio" id="obs-instr-radio-sax" name="obs-instrumentSingle" value="sax">
+                    <label for="obs-instr-radio-sax">Sax</label>
+                </div>
+                <div class="obs-instrument-row">
+                    <input type="radio" id="obs-instr-radio-sax2" name="obs-instrumentSingle" value="sax2">
+                    <label for="obs-instr-radio-sax2">Sax 2</label>
+                </div>
+                <div class="obs-instrument-row">
+                    <input type="radio" id="obs-instr-radio-harp" name="obs-instrumentSingle" value="harp">
+                    <label for="obs-instr-radio-harp">Harp</label>
+                </div>
+                <div class="obs-instrument-row">
+                    <input type="radio" id="obs-instr-radio-guzheng" name="obs-instrumentSingle" value="guzheng">
+                    <label for="obs-instr-radio-guzheng">Guzheng</label>
+                </div>
+                <div class="obs-instrument-row">
+                    <input type="radio" id="obs-instr-radio-guitar" name="obs-instrumentSingle" value="guitar">
+                    <label for="obs-instr-radio-guitar">Guitar</label>
+                </div>
+                <div class="obs-instrument-row">
+                    <input type="radio" id="obs-instr-radio-clarinet" name="obs-instrumentSingle" value="clarinet">
+                    <label for="obs-instr-radio-clarinet">Clarinet</label>
+                </div>
+            </div>
+
+            <!-- Checkbox Container (Multi Select - Initially Hidden) -->
+            <div id="obs-instrumentCheckboxContainer"
+                class="obs-instrument-container obs-instrument-checkbox-container hide">
+                <div class="obs-instrument-row">
+                    <input type="checkbox" id="obs-instr-check-piano" name="obs-instrumentMulti" value="piano">
+                    <label for="obs-instr-check-piano">Piano</label>
+                </div>
+                <div class="obs-instrument-row">
+                    <input type="checkbox" id="obs-instr-check-vibraphone" name="obs-instrumentMulti"
+                        value="vibraphone">
+                    <label for="obs-instr-check-vibraphone">Vibraphone</label>
+                </div>
+                <div class="obs-instrument-row">
+                    <input type="checkbox" id="obs-instr-check-twinkle" name="obs-instrumentMulti" value="twinkle">
+                    <label for="obs-instr-check-twinkle">Twinkle</label>
+                </div>
+                <div class="obs-instrument-row">
+                    <input type="checkbox" id="obs-instr-check-sax" name="obs-instrumentMulti" value="sax">
+                    <label for="obs-instr-check-sax">Sax</label>
+                </div>
+                <div class="obs-instrument-row">
+                    <input type="checkbox" id="obs-instr-check-sax2" name="obs-instrumentMulti" value="sax2">
+                    <label for="obs-instr-check-sax2">Sax 2</label>
+                </div>
+                <div class="obs-instrument-row">
+                    <input type="checkbox" id="obs-instr-check-harp" name="obs-instrumentMulti" value="harp">
+                    <label for="obs-instr-check-harp">Harp</label>
+                </div>
+                <div class="obs-instrument-row">
+                    <input type="checkbox" id="obs-instr-check-guzheng" name="obs-instrumentMulti" value="guzheng">
+                    <label for="obs-instr-check-guzheng">Guzheng</label>
+                </div>
+                <div class="obs-instrument-row">
+                    <input type="checkbox" id="obs-instr-check-guitar" name="obs-instrumentMulti" value="guitar">
+                    <label for="obs-instr-check-guitar">Guitar</label>
+                </div>
+                <div class="obs-instrument-row">
+                    <input type="checkbox" id="obs-instr-check-clarinet" name="obs-instrumentMulti" value="clarinet">
+                    <label for="obs-instr-check-clarinet">Clarinet</label>
+                </div>
+            </div>
+        </fieldset>
+
+        <!-- Volume Control -->
+        <div class="obs-control-group">
+            <label for="obs-volumeSlider">Vol: <span id="obs-volumeValueSpan" class="obs-slider-value"></span></label>
+            <input type="range" id="obs-volumeSlider" min="0" max="1" step="0.05">
+        </div>
+
+        <!-- Transpose Control -->
+        <div class="obs-control-group">
+            <label for="obs-transposeSlider">Pitch: <span id="obs-transposeValueSpan"
+                    class="obs-slider-value"></span></label>
+            <input type="range" id="obs-transposeSlider" min="-12" max="12" step="1" value="-5">
+        </div>
+
+        <!-- Auto Notes Section -->
+        <fieldset class="obs-control-group">
+            <legend>Auto Notes</legend>
+            <div class="obs-inline-checkbox-group">
+                <input type="checkbox" id="obs-playAutoNotesCheckbox">
+                <label for="obs-playAutoNotesCheckbox">Auto</label>
+            </div>
+            <div class="obs-slider-group">
+                <label for="obs-autoNotesChanceSlider">Chance: <span id="obs-autoNotesChanceValueSpan"
+                        class="obs-slider-value"></span></label>
+                <input type="range" id="obs-autoNotesChanceSlider" min="0" max="1" step="0.05">
+            </div>
+            <div class="obs-slider-group">
+                <label for="obs-autoNotesDelaySlider">Delay: <span id="obs-autoNotesDelayValueSpan"
+                        class="obs-slider-value"></span></label>
+                <input type="range" id="obs-autoNotesDelaySlider" min="50" max="1000" step="50">
+            </div>
+        </fieldset>
+
+        <!-- Max Notes Control -->
+        <div class="obs-control-group">
+            <label for="obs-maxNotesInput">Max Notes:</label>
+            <input type="number" id="obs-maxNotesInput" min="0" max="20" step="1" class="obs-number-input">
+        </div>
+
+        <!-- Streamer.bot Toggle -->
+        <div class="obs-control-group obs-inline-checkbox-group">
+            <input type="checkbox" id="obs-enableStreamerBotCheckbox" />
+            <label for="obs-enableStreamerBotCheckbox"
+                title="Requires Streamer.bot application running">Streamer.bot</label>
+        </div>
+
+        <!-- Reset Button -->
+        <div class="obs-control-group obs-reset-group">
+            <button id="obs-resetSettingsBtn" class="obs-reset-btn">Reset</button>
+        </div>
+    </div>
+</body>
+
+</html>
