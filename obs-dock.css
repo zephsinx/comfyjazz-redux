@@ -1,5 +1,98 @@
 /* OBS Dock Specific Styling - Compact Layout for Browser Dock */
 
+/* CSS Variables - Calm Greys/Greens/Blues Palette */
+:root {
+  /* Primary Colors */
+  --color-primary: #4a7c59; /* Calm green */
+  --color-primary-hover: #3d6b4a; /* Darker green for hover */
+  --color-primary-active: #2f5a3a; /* Even darker for active */
+
+  /* Secondary Colors */
+  --color-secondary: #6b8e9e; /* Soft blue-grey */
+  --color-secondary-hover: #5a7d8e; /* Darker blue-grey */
+
+  /* Background Colors */
+  --color-bg-primary: #f8f9fa; /* Light grey background */
+  --color-bg-secondary: #e9ecef; /* Slightly darker grey */
+  --color-bg-surface: #f0f2f5; /* Surface grey */
+  --color-bg-elevated: #ffffff; /* White for elevated surfaces */
+
+  /* Text Colors */
+  --color-text-primary: #2c3e50; /* Dark blue-grey text */
+  --color-text-secondary: #495057; /* Medium grey text */
+  --color-text-muted: #6c757d; /* Muted grey text */
+  --color-text-inverse: #ffffff; /* White text for dark backgrounds */
+
+  /* Border Colors */
+  --color-border-light: #dee2e6; /* Light border */
+  --color-border-medium: #ced4da; /* Medium border */
+  --color-border-dark: #adb5bd; /* Dark border */
+
+  /* Accent Colors */
+  --color-accent: #007bff; /* Blue accent for focus */
+  --color-accent-hover: #0056b3; /* Darker blue for hover */
+  --color-success: #28a745; /* Success green */
+  --color-warning: #ffc107; /* Warning yellow */
+  --color-danger: #dc3545; /* Danger red */
+
+  /* Interactive States */
+  --color-hover: rgba(74, 124, 89, 0.1); /* Light green hover */
+  --color-focus: #007bff; /* Blue focus ring */
+  --color-active: rgba(74, 124, 89, 0.2); /* Medium green active */
+
+  /* Shadows */
+  --shadow-light: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --shadow-medium: 0 4px 8px rgba(0, 0, 0, 0.15);
+  --shadow-heavy: 0 8px 16px rgba(0, 0, 0, 0.2);
+
+  /* Border Radius */
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 6px;
+  --spacing-md: 8px;
+  --spacing-lg: 10px;
+  --spacing-xl: 12px;
+  --spacing-xxl: 16px;
+}
+
+/* Dark Mode Variables */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg-primary: #2d2d2d;
+    --color-bg-secondary: #3d3d3d;
+    --color-bg-surface: #4d4d4d;
+    --color-bg-elevated: #555555;
+
+    --color-text-primary: #e0e0e0;
+    --color-text-secondary: #c0c0c0;
+    --color-text-muted: #a0a0a0;
+
+    --color-border-light: #555555;
+    --color-border-medium: #666666;
+    --color-border-dark: #777777;
+
+    --color-hover: rgba(74, 124, 89, 0.2);
+    --color-active: rgba(74, 124, 89, 0.3);
+  }
+}
+
+/* High Contrast Mode Variables */
+@media (prefers-contrast: high) {
+  :root {
+    --color-text-primary: #000000;
+    --color-text-secondary: #000000;
+    --color-border-light: #000000;
+    --color-border-medium: #000000;
+    --color-border-dark: #000000;
+    --color-focus: #000000;
+  }
+}
+
 /* Reset and Base Styles */
 * {
   box-sizing: border-box;
@@ -11,8 +104,8 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 16px;
   line-height: 1.5;
-  color: #222;
-  background-color: #f8f8f8;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-primary);
   user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -24,18 +117,41 @@ body {
   width: 100%;
   max-width: 400px;
   min-width: 200px;
-  padding: 10px;
-  background-color: #f0f0f0;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: var(--spacing-xl);
+  background: linear-gradient(
+    135deg,
+    var(--color-bg-surface) 0%,
+    var(--color-bg-secondary) 100%
+  );
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-medium);
+  line-height: 1.6;
+  position: relative;
+}
+
+.obs-dock::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 50%,
+    rgba(0, 0, 0, 0.02) 100%
+  );
+  border-radius: var(--radius-xl);
+  pointer-events: none;
 }
 
 /* Header */
 .obs-header {
-  margin-bottom: 10px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #ddd;
+  margin-bottom: var(--spacing-xl);
+  padding-bottom: var(--spacing-lg);
+  border-bottom: 1px solid var(--color-border-light);
   text-align: center;
 }
 
@@ -43,12 +159,13 @@ body {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: #222;
+  color: var(--color-text-primary);
+  line-height: 1.4;
 }
 
 /* Control Groups - Compact Spacing */
 .obs-control-group {
-  margin-bottom: 10px;
+  margin-bottom: var(--spacing-xl);
 }
 
 .obs-control-group:last-child {
@@ -58,10 +175,11 @@ body {
 .obs-control-group label,
 .obs-control-group legend {
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: var(--spacing-sm);
   font-weight: 600;
   font-size: 14px;
-  color: #222;
+  color: var(--color-text-primary);
+  line-height: 1.5;
 }
 
 /* Form Elements - Accessible Sizing */
@@ -76,43 +194,165 @@ input[type="radio"] {
 input[type="range"] {
   width: calc(100% - 10px);
   height: 6px;
-  margin: 4px 0;
+  margin: var(--spacing-xs) 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-secondary);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  cursor: pointer;
+  border: 2px solid var(--color-bg-elevated);
+  box-shadow: var(--shadow-light);
+  transition: all 0.2s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  background: var(--color-primary-hover);
+  transform: scale(1.1);
+  box-shadow: var(--shadow-medium);
+}
+
+input[type="range"]::-webkit-slider-thumb:active {
+  background: var(--color-primary-active);
+  transform: scale(1.05);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  cursor: pointer;
+  border: 2px solid var(--color-bg-elevated);
+  box-shadow: var(--shadow-light);
+  transition: all 0.2s ease;
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+  background: var(--color-primary-hover);
+  transform: scale(1.1);
+  box-shadow: var(--shadow-medium);
+}
+
+input[type="range"]::-moz-range-track {
+  height: 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-secondary);
+  border: none;
 }
 
 input[type="number"] {
   width: 80px;
-  padding: 4px 6px;
-  border: 1px solid #999;
-  border-radius: 4px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-border-dark);
+  border-radius: var(--radius-md);
   font-size: 14px;
-  color: #222;
-  background-color: #fff;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-elevated);
+  line-height: 1.4;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 input[type="checkbox"],
 input[type="radio"] {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   cursor: pointer;
+  transition: all 0.2s ease;
+  -webkit-appearance: none;
+  appearance: none;
+  border: 2px solid var(--color-border-dark);
+  background: var(--color-bg-elevated);
+  position: relative;
+}
+
+input[type="checkbox"] {
+  border-radius: var(--radius-sm);
+}
+
+input[type="radio"] {
+  border-radius: 50%;
+}
+
+input[type="checkbox"]:checked,
+input[type="radio"]:checked {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+input[type="checkbox"]:checked::after {
+  content: "✓";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--color-text-inverse);
+  font-size: 12px;
+  font-weight: bold;
+}
+
+input[type="radio"]:checked::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-text-inverse);
 }
 
 /* Fieldsets - Compact */
 fieldset {
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 8px 10px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg) var(--spacing-xl);
   margin: 0;
+  box-shadow: var(--shadow-light);
+  background: linear-gradient(
+    135deg,
+    var(--color-bg-elevated) 0%,
+    var(--color-bg-surface) 100%
+  );
+  position: relative;
+}
+
+fieldset::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    transparent 100%
+  );
+  border-radius: var(--radius-lg);
+  pointer-events: none;
 }
 
 fieldset legend {
-  padding: 0 6px;
-  margin-left: 8px;
+  padding: 0 var(--spacing-sm);
+  margin-left: var(--spacing-md);
   font-size: 14px;
   font-weight: 600;
+  line-height: 1.4;
 }
 
 fieldset > div {
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-lg);
 }
 
 fieldset > div:last-child {
@@ -125,27 +365,29 @@ fieldset > div:last-child {
   min-width: 3em;
   text-align: right;
   font-weight: normal;
-  margin-left: 6px;
-  background-color: #e8e8e8;
-  color: #222;
-  padding: 3px 6px;
-  border-radius: 3px;
+  margin-left: var(--spacing-sm);
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
   font-size: 13px;
+  line-height: 1.3;
+  box-shadow: var(--shadow-light);
 }
 
 /* Instrument Selection - Accessible Grid */
 .obs-instrument-section legend {
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .obs-instrument-mode-toggle {
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-lg);
   display: flex;
   align-items: center;
 }
 
 .obs-instrument-mode-toggle input[type="checkbox"] {
-  margin-right: 6px;
+  margin-right: var(--spacing-sm);
 }
 
 .obs-instrument-mode-toggle label {
@@ -153,17 +395,19 @@ fieldset > div:last-child {
   font-size: 14px;
   margin-bottom: 0;
   cursor: pointer;
+  line-height: 1.4;
 }
 
 .obs-instrument-container {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 6px;
+  gap: var(--spacing-md);
   max-height: 140px;
   overflow-y: auto;
-  padding: 6px;
-  background-color: #e8e8e8;
-  border-radius: 4px;
+  padding: var(--spacing-md);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-light);
 }
 
 .obs-instrument-container.hide {
@@ -177,7 +421,7 @@ fieldset > div:last-child {
 
 .obs-instrument-row input[type="radio"],
 .obs-instrument-row input[type="checkbox"] {
-  margin-right: 6px;
+  margin-right: var(--spacing-sm);
   cursor: pointer;
 }
 
@@ -189,14 +433,15 @@ fieldset > div:last-child {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.4;
 }
 
 /* Inline Checkbox Groups */
 .obs-inline-checkbox-group {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
 }
 
 .obs-inline-checkbox-group label {
@@ -204,53 +449,97 @@ fieldset > div:last-child {
   margin: 0;
   font-size: 14px;
   font-weight: normal;
+  line-height: 1.4;
 }
 
 /* Slider Groups */
 .obs-slider-group {
-  margin-bottom: 6px;
+  margin-bottom: var(--spacing-md);
 }
 
 .obs-slider-group label {
   font-size: 14px;
-  margin-bottom: 3px;
+  margin-bottom: var(--spacing-xs);
+  line-height: 1.4;
 }
 
 /* Number Input Styling */
 .obs-number-input {
   width: 80px;
-  padding: 4px 6px;
-  border: 1px solid #999;
-  border-radius: 4px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-border-dark);
+  border-radius: var(--radius-md);
   font-size: 14px;
   text-align: center;
-  color: #222;
-  background-color: #fff;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-elevated);
+  line-height: 1.4;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 /* Reset Button */
 .obs-reset-group {
-  margin-top: 12px;
+  margin-top: var(--spacing-xxl);
   text-align: center;
 }
 
 .obs-reset-btn {
-  padding: 10px 20px;
-  background-color: #495057;
-  color: white;
+  padding: var(--spacing-lg) var(--spacing-xxl);
+  background: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-primary-hover) 100%
+  );
+  color: var(--color-text-inverse);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-lg);
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
+  line-height: 1.4;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.obs-reset-btn::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  transition: left 0.5s ease;
 }
 
 .obs-reset-btn:hover {
-  background-color: #343a40;
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-hover) 0%,
+    var(--color-primary-active) 100%
+  );
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-heavy);
+}
+
+.obs-reset-btn:hover::before {
+  left: 100%;
 }
 
 .obs-reset-btn:active {
-  background-color: #212529;
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-active) 0%,
+    var(--color-primary) 100%
+  );
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-medium);
 }
 
 /* Hide Utility */
@@ -261,7 +550,7 @@ fieldset > div:last-child {
 /* Responsive Design for Different Dock Sizes */
 @media (max-width: 300px) {
   .obs-dock {
-    padding: 8px;
+    padding: var(--spacing-md);
   }
 
   .obs-instrument-container {
@@ -287,12 +576,12 @@ fieldset > div:last-child {
 
 @media (max-width: 250px) {
   .obs-dock {
-    padding: 6px;
+    padding: var(--spacing-sm);
   }
 
   .obs-instrument-container {
     grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-    gap: 4px;
+    gap: var(--spacing-xs);
     max-height: 120px;
   }
 
@@ -313,7 +602,7 @@ fieldset > div:last-child {
 
 @media (max-width: 200px) {
   .obs-dock {
-    padding: 4px;
+    padding: var(--spacing-xs);
   }
 
   .obs-instrument-container {
@@ -326,7 +615,7 @@ fieldset > div:last-child {
   }
 
   .obs-control-group {
-    margin-bottom: 8px;
+    margin-bottom: var(--spacing-md);
   }
 
   .obs-instrument-row label {
@@ -341,13 +630,14 @@ fieldset > div:last-child {
 
 /* Hover States and Visual Feedback */
 .obs-instrument-row:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-  border-radius: 3px;
+  background-color: var(--color-hover);
+  border-radius: var(--radius-sm);
+  transition: background-color 0.2s ease;
 }
 
 .obs-reset-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-medium);
 }
 
 input[type="range"]:hover {
@@ -356,21 +646,68 @@ input[type="range"]:hover {
 
 input[type="checkbox"]:hover,
 input[type="radio"]:hover {
-  transform: scale(1.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(74, 124, 89, 0.1);
+}
+
+input[type="checkbox"]:focus,
+input[type="radio"]:focus {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+  border-color: var(--color-primary);
+}
+
+input[type="number"]:hover,
+.obs-number-input:hover {
+  border-color: var(--color-primary);
+}
+
+input[type="number"]:focus,
+.obs-number-input:focus {
+  border-color: var(--color-focus);
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
 /* Focus States for Accessibility */
 input[type="range"]:focus,
-input[type="number"]:focus,
-input[type="checkbox"]:focus,
-input[type="radio"]:focus {
-  outline: 2px solid #007bff;
+input[type="number"]:focus {
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
 
 .obs-reset-btn:focus {
-  outline: 2px solid #007bff;
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
+}
+
+/* Respect user motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .obs-reset-btn:hover {
+    transform: none;
+  }
+
+  .obs-reset-btn::before {
+    display: none;
+  }
+
+  input[type="checkbox"]:hover,
+  input[type="radio"]:hover {
+    transform: none;
+  }
+
+  input[type="range"]::-webkit-slider-thumb:hover,
+  input[type="range"]::-moz-range-thumb:hover {
+    transform: none;
+  }
 }
 
 /* Scrollbar Styling for Instrument Container */
@@ -379,88 +716,39 @@ input[type="radio"]:focus {
 }
 
 .obs-instrument-container::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
+  background: var(--color-bg-primary);
+  border-radius: var(--radius-sm);
 }
 
 .obs-instrument-container::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
+  background: var(--color-border-dark);
+  border-radius: var(--radius-sm);
 }
 
 .obs-instrument-container::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+  background: var(--color-text-muted);
 }
 
 /* High Contrast Mode Support */
 @media (prefers-contrast: high) {
   .obs-dock {
-    border: 2px solid #000;
+    border: 2px solid var(--color-border-dark);
   }
 
   .obs-control-group label,
   .obs-control-group legend {
-    color: #000;
+    color: var(--color-text-primary);
     font-weight: 700;
   }
 
   .obs-slider-value {
-    background-color: #fff;
-    border: 1px solid #000;
-    color: #000;
+    background-color: var(--color-bg-elevated);
+    border: 1px solid var(--color-border-dark);
+    color: var(--color-text-primary);
   }
 
   .obs-number-input {
-    border: 2px solid #000;
-    color: #000;
-  }
-}
-
-/* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-  body {
-    background-color: #2d2d2d;
-    color: #e0e0e0;
-  }
-
-  .obs-dock {
-    background-color: #3d3d3d;
-    border-color: #555;
-  }
-
-  .obs-header h3 {
-    color: #e0e0e0;
-  }
-
-  .obs-control-group label,
-  .obs-control-group legend {
-    color: #e0e0e0;
-  }
-
-  fieldset {
-    border-color: #555;
-  }
-
-  .obs-instrument-container {
-    background-color: #4d4d4d;
-  }
-
-  .obs-slider-value {
-    background-color: #555;
-    color: #e0e0e0;
-  }
-
-  .obs-number-input {
-    background-color: #4d4d4d;
-    border-color: #666;
-    color: #e0e0e0;
-  }
-
-  .obs-reset-btn {
-    background-color: #555;
-  }
-
-  .obs-reset-btn:hover {
-    background-color: #666;
+    border: 2px solid var(--color-border-dark);
+    color: var(--color-text-primary);
   }
 }
