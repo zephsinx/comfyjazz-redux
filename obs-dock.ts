@@ -157,6 +157,12 @@ const enableStreamerBotCheckbox = document.querySelector<HTMLInputElement>(
 const resetSettingsBtn = document.querySelector<HTMLButtonElement>(
   "#obs-resetSettingsBtn"
 );
+const autoNotesToggle = document.querySelector<HTMLButtonElement>(
+  "#obs-autoNotesToggle"
+);
+const autoNotesContent = document.querySelector<HTMLDivElement>(
+  "#obs-autoNotesContent"
+);
 
 // --- Helper Functions ---
 function saveCurrentSettings() {
@@ -455,26 +461,49 @@ if (enableStreamerBotCheckbox) {
 // Reset button
 if (resetSettingsBtn) {
   resetSettingsBtn.addEventListener("click", () => {
-    const currentSettings = loadSettings();
-    const settingsToKeep: SavedSettings = {
-      enableStreamerBot:
-        currentSettings.enableStreamerBot ?? defaultSettings.enableStreamerBot,
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settingsToKeep));
+    // Show confirmation dialog
+    const confirmed = confirm(
+      "Are you sure you want to reset all settings? This action cannot be undone."
+    );
 
-    // Reset mock ComfyJazz settings
-    mockComfyJazz.instrument = defaultSettings.instrument;
-    mockComfyJazz.volume = defaultSettings.volume;
-    mockComfyJazz.playAutoNotes = defaultSettings.playAutoNotes;
-    mockComfyJazz.autoNotesChance = defaultSettings.autoNotesChance;
-    mockComfyJazz.autoNotesDelay = defaultSettings.autoNotesDelay;
-    mockComfyJazz.transpose = defaultSettings.transpose;
+    if (confirmed) {
+      const currentSettings = loadSettings();
+      const settingsToKeep: SavedSettings = {
+        enableStreamerBot:
+          currentSettings.enableStreamerBot ??
+          defaultSettings.enableStreamerBot,
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(settingsToKeep));
 
-    maxNotesPerEvent = defaultSettings.maxNotesPerEvent;
-    enableStreamerBot = settingsToKeep.enableStreamerBot ?? false;
+      // Reset mock ComfyJazz settings
+      mockComfyJazz.instrument = defaultSettings.instrument;
+      mockComfyJazz.volume = defaultSettings.volume;
+      mockComfyJazz.playAutoNotes = defaultSettings.playAutoNotes;
+      mockComfyJazz.autoNotesChance = defaultSettings.autoNotesChance;
+      mockComfyJazz.autoNotesDelay = defaultSettings.autoNotesDelay;
+      mockComfyJazz.transpose = defaultSettings.transpose;
 
-    // Re-initialize controls
-    initializeControls();
+      maxNotesPerEvent = defaultSettings.maxNotesPerEvent;
+      enableStreamerBot = settingsToKeep.enableStreamerBot ?? false;
+
+      // Re-initialize controls
+      initializeControls();
+    }
+  });
+}
+
+// Auto-notes toggle
+if (autoNotesToggle && autoNotesContent) {
+  autoNotesToggle.addEventListener("click", () => {
+    const isExpanded = autoNotesToggle.getAttribute("aria-expanded") === "true";
+    const newExpanded = !isExpanded;
+
+    autoNotesToggle.setAttribute("aria-expanded", String(newExpanded));
+    autoNotesContent.classList.toggle("hide", !newExpanded);
+
+    // Add collapsed class to fieldset
+    const fieldset = autoNotesToggle.closest("fieldset");
+    fieldset?.classList.toggle("obs-collapsed", !newExpanded);
   });
 }
 

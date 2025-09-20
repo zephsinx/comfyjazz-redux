@@ -157,8 +157,8 @@ body {
 
 .obs-header h3 {
   margin: 0;
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 500;
   color: var(--color-text-primary);
   line-height: 1.4;
 }
@@ -175,7 +175,7 @@ body {
 .obs-control-group label,
 .obs-control-group legend {
   display: block;
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: var(--spacing-xs);
   font-weight: 600;
   font-size: 14px;
   color: var(--color-text-primary);
@@ -346,9 +346,66 @@ fieldset::before {
 fieldset legend {
   padding: 0 var(--spacing-sm);
   margin-left: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
   font-size: 14px;
   font-weight: 600;
   line-height: 1.4;
+}
+
+/* Collapsed Fieldset Styling */
+fieldset.obs-collapsed {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-bg-secondary);
+  transition: all 0.2s ease;
+}
+
+/* Collapsible Toggle Button */
+.obs-collapse-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  line-height: 1.4;
+  transition: all 0.2s ease;
+}
+
+.obs-collapse-toggle:hover {
+  color: var(--color-primary);
+  background-color: var(--color-hover);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-xs);
+  margin: calc(-1 * var(--spacing-xs));
+}
+
+.obs-collapse-toggle:focus {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.obs-collapse-icon {
+  font-size: 12px;
+  transition: transform 0.2s ease;
+  display: inline-block;
+}
+
+.obs-collapse-toggle[aria-expanded="false"] .obs-collapse-icon {
+  transform: rotate(-90deg);
+}
+
+.obs-auto-notes-content {
+  transition: opacity 0.2s ease;
+}
+
+.obs-auto-notes-content.hide {
+  display: none;
 }
 
 fieldset > div {
@@ -377,7 +434,7 @@ fieldset > div:last-child {
 
 /* Instrument Selection - Accessible Grid */
 .obs-instrument-section legend {
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
 }
 
 .obs-instrument-mode-toggle {
@@ -400,9 +457,9 @@ fieldset > div:last-child {
 
 .obs-instrument-container {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
   gap: var(--spacing-md);
-  max-height: 140px;
+  max-height: 160px;
   overflow-y: auto;
   padding: var(--spacing-md);
   background-color: var(--color-bg-secondary);
@@ -479,27 +536,30 @@ fieldset > div:last-child {
 
 /* Reset Button */
 .obs-reset-group {
-  margin-top: var(--spacing-xxl);
-  text-align: center;
+  position: absolute;
+  top: var(--spacing-md);
+  right: var(--spacing-md);
+  z-index: 10;
 }
 
 .obs-reset-btn {
-  padding: var(--spacing-lg) var(--spacing-xxl);
+  padding: var(--spacing-sm) var(--spacing-md);
   background: linear-gradient(
     135deg,
-    var(--color-primary) 0%,
-    var(--color-primary-hover) 100%
+    var(--color-secondary) 0%,
+    var(--color-secondary-hover) 100%
   );
   color: var(--color-text-inverse);
   border: none;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
   line-height: 1.4;
   transition: all 0.2s ease;
   position: relative;
   overflow: hidden;
+  box-shadow: var(--shadow-light);
 }
 
 .obs-reset-btn::before {
@@ -521,11 +581,11 @@ fieldset > div:last-child {
 .obs-reset-btn:hover {
   background: linear-gradient(
     135deg,
-    var(--color-primary-hover) 0%,
-    var(--color-primary-active) 100%
+    var(--color-secondary-hover) 0%,
+    var(--color-primary) 100%
   );
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-heavy);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-medium);
 }
 
 .obs-reset-btn:hover::before {
@@ -535,11 +595,11 @@ fieldset > div:last-child {
 .obs-reset-btn:active {
   background: linear-gradient(
     135deg,
-    var(--color-primary-active) 0%,
-    var(--color-primary) 100%
+    var(--color-primary) 0%,
+    var(--color-secondary) 100%
   );
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-medium);
+  transform: translateY(0);
+  box-shadow: var(--shadow-light);
 }
 
 /* Hide Utility */
@@ -554,9 +614,9 @@ fieldset > div:last-child {
   }
 
   .obs-instrument-container {
-    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
     gap: 5px;
-    max-height: 130px;
+    max-height: 150px;
   }
 
   .obs-instrument-row label {
@@ -565,6 +625,10 @@ fieldset > div:last-child {
 
   .obs-control-group label,
   .obs-control-group legend {
+    font-size: 13px;
+  }
+
+  .obs-collapse-toggle {
     font-size: 13px;
   }
 
@@ -580,9 +644,9 @@ fieldset > div:last-child {
   }
 
   .obs-instrument-container {
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
     gap: var(--spacing-xs);
-    max-height: 120px;
+    max-height: 140px;
   }
 
   .obs-instrument-row label {
@@ -591,6 +655,10 @@ fieldset > div:last-child {
 
   .obs-control-group label,
   .obs-control-group legend {
+    font-size: 12px;
+  }
+
+  .obs-collapse-toggle {
     font-size: 12px;
   }
 
@@ -607,11 +675,11 @@ fieldset > div:last-child {
 
   .obs-instrument-container {
     grid-template-columns: 1fr;
-    max-height: 100px;
+    max-height: 120px;
   }
 
   .obs-header h3 {
-    font-size: 16px;
+    font-size: 14px;
   }
 
   .obs-control-group {
@@ -624,6 +692,10 @@ fieldset > div:last-child {
 
   .obs-control-group label,
   .obs-control-group legend {
+    font-size: 11px;
+  }
+
+  .obs-collapse-toggle {
     font-size: 11px;
   }
 }

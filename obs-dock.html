@@ -121,20 +121,28 @@
 
         <!-- Auto Notes Section -->
         <fieldset class="obs-control-group">
-            <legend>Auto Notes</legend>
-            <div class="obs-inline-checkbox-group">
-                <input type="checkbox" id="obs-playAutoNotesCheckbox">
-                <label for="obs-playAutoNotesCheckbox">Auto</label>
-            </div>
-            <div class="obs-slider-group">
-                <label for="obs-autoNotesChanceSlider">Chance: <span id="obs-autoNotesChanceValueSpan"
-                        class="obs-slider-value"></span></label>
-                <input type="range" id="obs-autoNotesChanceSlider" min="0" max="1" step="0.05">
-            </div>
-            <div class="obs-slider-group">
-                <label for="obs-autoNotesDelaySlider">Delay: <span id="obs-autoNotesDelayValueSpan"
-                        class="obs-slider-value"></span></label>
-                <input type="range" id="obs-autoNotesDelaySlider" min="50" max="1000" step="50">
+            <legend>
+                <button type="button" id="obs-autoNotesToggle" class="obs-collapse-toggle" aria-expanded="false"
+                    aria-controls="obs-autoNotesContent">
+                    <span class="obs-collapse-icon">▼</span>
+                    Auto Notes
+                </button>
+            </legend>
+            <div id="obs-autoNotesContent" class="obs-auto-notes-content hide">
+                <div class="obs-inline-checkbox-group">
+                    <input type="checkbox" id="obs-playAutoNotesCheckbox">
+                    <label for="obs-playAutoNotesCheckbox">Auto</label>
+                </div>
+                <div class="obs-slider-group">
+                    <label for="obs-autoNotesChanceSlider">Chance: <span id="obs-autoNotesChanceValueSpan"
+                            class="obs-slider-value"></span></label>
+                    <input type="range" id="obs-autoNotesChanceSlider" min="0" max="1" step="0.05">
+                </div>
+                <div class="obs-slider-group">
+                    <label for="obs-autoNotesDelaySlider">Delay: <span id="obs-autoNotesDelayValueSpan"
+                            class="obs-slider-value"></span></label>
+                    <input type="range" id="obs-autoNotesDelaySlider" min="50" max="1000" step="50">
+                </div>
             </div>
         </fieldset>
 
@@ -152,8 +160,8 @@
         </div>
 
         <!-- Reset Button -->
-        <div class="obs-control-group obs-reset-group">
-            <button id="obs-resetSettingsBtn" class="obs-reset-btn">Reset</button>
+        <div class="obs-reset-group">
+            <button id="obs-resetSettingsBtn" class="obs-reset-btn" title="Reset all settings">Reset</button>
         </div>
     </div>
 </body>
