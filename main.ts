@@ -43,7 +43,11 @@ function loadSettings(): SavedSettings {
   return {};
 }
 
-function saveSettings(cjSettings: ComfyJazzOptions, sbEnabled: boolean, maxNotes: number) {
+function saveSettings(
+  cjSettings: ComfyJazzOptions,
+  sbEnabled: boolean,
+  maxNotes: number
+) {
   if (!cjSettings) return;
   try {
     const settingsToSave: SavedSettings = {
@@ -120,10 +124,10 @@ if (volumeParam !== null) {
   }
 }
 if (maxNotesParam !== null) {
-    const parsedMaxNotes = parseInt(maxNotesParam, 10);
-    if (!isNaN(parsedMaxNotes)) {
-        maxNotesPerEvent = Math.max(0, Math.min(20, parsedMaxNotes));
-    }
+  const parsedMaxNotes = parseInt(maxNotesParam, 10);
+  if (!isNaN(parsedMaxNotes)) {
+    maxNotesPerEvent = Math.max(0, Math.min(20, parsedMaxNotes));
+  }
 }
 // Assign URL params to the options passed to ComfyJazz
 comfyJazzOptions.instrument = instrumentParam ?? comfyJazzOptions.instrument;
@@ -139,12 +143,12 @@ let isStreamerBotConnected = false;
 
 // Handler function for YouTube messages via Streamer.bot
 function handleYouTubeMessage(/* data: any */) {
-    comfyJazz.playNoteProgression((Math.random() * (maxNotesPerEvent + 1)) >> 0);
+  comfyJazz.playNoteProgression((Math.random() * (maxNotesPerEvent + 1)) >> 0);
 }
 
 function connectStreamerBot() {
   if (!enableStreamerBot) {
-      return; // Don't connect if the setting is off
+    return; // Don't connect if the setting is off
   }
 
   if (sbClient && isStreamerBotConnected) {
@@ -152,71 +156,72 @@ function connectStreamerBot() {
   }
 
   if (sbClient) {
-      // Instance exists but not connected
-      console.log("Streamer.bot client exists, attempting connection...");
-      sbClient.connect();
-      return;
+    // Instance exists but not connected
+    console.log("Streamer.bot client exists, attempting connection...");
+    sbClient.connect();
+    return;
   }
 
   // Instance doesn't exist, create it
   console.log("Initializing and connecting Streamer.bot client...");
   try {
-      sbClient = new StreamerbotClient({
-          immediate: false, // We control connection timing
-          onConnect: (data) => {
-              if (!enableStreamerBot) {
-                  disconnectStreamerBot();
-                  return;
-              }
-              isStreamerBotConnected = true;
-              console.log("Streamer.bot client connected successfully.", data);
-              console.log("Subscribing to YouTube.Message via Streamer.bot...");
-              sbClient?.on('YouTube.Message', handleYouTubeMessage);
-          },
-          onError: (error) => {
-              if (isStreamerBotConnected) {
-                  console.error("Streamer.bot client connection error:", error);
-              }
-              isStreamerBotConnected = false;
-              if (!enableStreamerBot) {
-                  disconnectStreamerBot(); // Ensure cleanup if disabled during error
-              }
-          },
-          onDisconnect: () => {
-              if (isStreamerBotConnected) {
-                  console.log("Streamer.bot client connection closed.");
-              }
-              isStreamerBotConnected = false;
-              sbClient = null; // Nullify on disconnect to allow re-creation
-          }
-      });
+    sbClient = new StreamerbotClient({
+      immediate: false, // We control connection timing
+      onConnect: (data) => {
+        if (!enableStreamerBot) {
+          disconnectStreamerBot();
+          return;
+        }
+        isStreamerBotConnected = true;
+        console.log("Streamer.bot client connected successfully.", data);
+        console.log("Subscribing to YouTube.Message via Streamer.bot...");
+        sbClient?.on("YouTube.Message", handleYouTubeMessage);
+      },
+      onError: (error) => {
+        if (isStreamerBotConnected) {
+          console.error("Streamer.bot client connection error:", error);
+        }
+        isStreamerBotConnected = false;
+        if (!enableStreamerBot) {
+          disconnectStreamerBot(); // Ensure cleanup if disabled during error
+        }
+      },
+      onDisconnect: () => {
+        if (isStreamerBotConnected) {
+          console.log("Streamer.bot client connection closed.");
+        }
+        isStreamerBotConnected = false;
+        sbClient = null; // Nullify on disconnect to allow re-creation
+      },
+    });
 
-      // *** TODO: Add desired event listeners here using sbClient.on(...) ***
+    // *** TODO: Add desired event listeners here using sbClient.on(...) ***
 
-      // Attempt the explicit connection for the newly created instance
-      sbClient.connect();
-
+    // Attempt the explicit connection for the newly created instance
+    sbClient.connect();
   } catch (error) {
     console.error("Failed to initialize Streamer.bot client instance:", error);
     sbClient = null;
     isStreamerBotConnected = false;
-    const sbCheckbox = document.querySelector<HTMLInputElement>("#enableStreamerBotCheckbox");
+    const sbCheckbox = document.querySelector<HTMLInputElement>(
+      "#enableStreamerBotCheckbox"
+    );
     if (sbCheckbox && enableStreamerBot) {
-        enableStreamerBot = false;
-        sbCheckbox.checked = false;
-        saveCurrentSettings();
+      enableStreamerBot = false;
+      sbCheckbox.checked = false;
+      saveCurrentSettings();
     }
   }
 }
 
 function disconnectStreamerBot() {
-    if (sbClient) {
-        sbClient.disconnect();
-        sbClient = null; // Ensure instance is removed
-    } else {
-        // console.log("Streamer.bot client instance does not exist or already disconnected.");
-    }
-    isStreamerBotConnected = false; // Ensure state reflects disconnected
+  if (sbClient) {
+    sbClient.disconnect();
+    sbClient = null; // Ensure instance is removed
+  } else {
+    // console.log("Streamer.bot client instance does not exist or already disconnected.");
+  }
+  isStreamerBotConnected = false; // Ensure state reflects disconnected
 }
 
 // Initial connection attempt on page load IF setting is enabled
@@ -232,7 +237,7 @@ const closeControlsBtn = document.querySelector<HTMLButtonElement>(
   "#close-controls-btn"
 );
 const enableStreamerBotCheckbox = document.querySelector<HTMLInputElement>(
-    "#enableStreamerBotCheckbox"
+  "#enableStreamerBotCheckbox"
 );
 
 // Instrument controls
@@ -264,7 +269,8 @@ const transposeSlider =
   document.querySelector<HTMLInputElement>("#transposeSlider");
 const resetSettingsBtn =
   document.querySelector<HTMLButtonElement>("#resetSettingsBtn");
-const maxNotesInput = document.querySelector<HTMLInputElement>("#maxNotesInput");
+const maxNotesInput =
+  document.querySelector<HTMLInputElement>("#maxNotesInput");
 
 // Get references to value display spans
 const volumeValueSpan =
@@ -281,7 +287,7 @@ const transposeValueSpan = document.querySelector<HTMLSpanElement>(
 
 // Helper to save current state
 function saveCurrentSettings() {
-    saveSettings(comfyJazz, enableStreamerBot, maxNotesPerEvent);
+  saveSettings(comfyJazz, enableStreamerBot, maxNotesPerEvent);
 }
 
 // --- Event Listeners for Controls ---
@@ -295,19 +301,19 @@ if (closeControlsBtn && controlsPanel) {
 
 // Streamer.bot Enable Checkbox Listener
 if (enableStreamerBotCheckbox) {
-    enableStreamerBotCheckbox.addEventListener('change', (e) => {
-        const target = e.currentTarget as HTMLInputElement;
-        enableStreamerBot = target.checked;
-        saveCurrentSettings(); // Save the new state
+  enableStreamerBotCheckbox.addEventListener("change", (e) => {
+    const target = e.currentTarget as HTMLInputElement;
+    enableStreamerBot = target.checked;
+    saveCurrentSettings(); // Save the new state
 
-        if (enableStreamerBot) {
-            // Explicitly try to connect when toggled on
-            connectStreamerBot();
-        } else {
-            // Explicitly disconnect when toggled off
-            disconnectStreamerBot();
-        }
-    });
+    if (enableStreamerBot) {
+      // Explicitly try to connect when toggled on
+      connectStreamerBot();
+    } else {
+      // Explicitly disconnect when toggled off
+      disconnectStreamerBot();
+    }
+  });
 }
 
 // Listener for the MULTI-INSTRUMENT TOGGLE checkbox
@@ -458,26 +464,26 @@ if (transposeSlider && transposeValueSpan) {
 
 // Max Notes Per Event Input Listener
 if (maxNotesInput /* && maxNotesValueSpan */) {
-    const debouncedSetMaxNotes = debounce((value: number) => {
-        maxNotesPerEvent = value;
-        saveCurrentSettings();
-    }, 100);
+  const debouncedSetMaxNotes = debounce((value: number) => {
+    maxNotesPerEvent = value;
+    saveCurrentSettings();
+  }, 100);
 
-    maxNotesInput.addEventListener("input", (e) => {
-        const target = e.currentTarget as HTMLInputElement;
-        let newValue = parseInt(target.value, 10);
+  maxNotesInput.addEventListener("input", (e) => {
+    const target = e.currentTarget as HTMLInputElement;
+    let newValue = parseInt(target.value, 10);
 
-        if (isNaN(newValue)) {
-            newValue = defaultSettings.maxNotesPerEvent;
-        }
-        newValue = Math.max(0, Math.min(20, newValue));
+    if (isNaN(newValue)) {
+      newValue = defaultSettings.maxNotesPerEvent;
+    }
+    newValue = Math.max(0, Math.min(20, newValue));
 
-        if (String(newValue) !== target.value) {
-             target.value = String(newValue);
-        }
+    if (String(newValue) !== target.value) {
+      target.value = String(newValue);
+    }
 
-        debouncedSetMaxNotes(newValue);
-    });
+    debouncedSetMaxNotes(newValue);
+  });
 }
 
 // Reset Settings Button
@@ -485,7 +491,8 @@ if (resetSettingsBtn) {
   resetSettingsBtn.addEventListener("click", () => {
     const currentSettings = loadSettings();
     const settingsToKeep: SavedSettings = {
-        enableStreamerBot: currentSettings.enableStreamerBot ?? defaultSettings.enableStreamerBot,
+      enableStreamerBot:
+        currentSettings.enableStreamerBot ?? defaultSettings.enableStreamerBot,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settingsToKeep));
 
@@ -537,7 +544,9 @@ window.addEventListener("keydown", (e: KeyboardEvent): void => {
       document.activeElement instanceof HTMLSelectElement
     )
   ) {
-    comfyJazz.playNoteProgression((Math.random() * (maxNotesPerEvent + 1)) >> 0);
+    comfyJazz.playNoteProgression(
+      (Math.random() * (maxNotesPerEvent + 1)) >> 0
+    );
   }
 });
 
@@ -579,35 +588,48 @@ window.addEventListener("storage", (event) => {
     console.log("Settings changed in another tab!");
     try {
       // Ensure newValue is not null before parsing
-      const newSettings: SavedSettings = event.newValue ? JSON.parse(event.newValue) : {};
+      const newSettings: SavedSettings = event.newValue
+        ? JSON.parse(event.newValue)
+        : {};
 
       // Merge with defaults to handle potentially missing keys
       const mergedSettings = { ...defaultSettings, ...newSettings };
 
       // Update the streamerbot state variable
-      const sbSettingChanged = enableStreamerBot !== mergedSettings.enableStreamerBot;
+      const sbSettingChanged =
+        enableStreamerBot !== mergedSettings.enableStreamerBot;
       enableStreamerBot = mergedSettings.enableStreamerBot;
       maxNotesPerEvent = mergedSettings.maxNotesPerEvent;
 
       if (comfyJazz) {
         // Update internal comfyJazz state
         comfyJazz.setVolume(mergedSettings.volume ?? defaultSettings.volume);
-        comfyJazz.setInstrument(mergedSettings.instrument ?? defaultSettings.instrument);
-        comfyJazz.setPlayAutoNotes(mergedSettings.playAutoNotes ?? defaultSettings.playAutoNotes);
-        comfyJazz.setAutoNotesChance(mergedSettings.autoNotesChance ?? defaultSettings.autoNotesChance);
-        comfyJazz.setAutoNotesDelay(mergedSettings.autoNotesDelay ?? defaultSettings.autoNotesDelay);
-        comfyJazz.setTranspose(mergedSettings.transpose ?? defaultSettings.transpose);
+        comfyJazz.setInstrument(
+          mergedSettings.instrument ?? defaultSettings.instrument
+        );
+        comfyJazz.setPlayAutoNotes(
+          mergedSettings.playAutoNotes ?? defaultSettings.playAutoNotes
+        );
+        comfyJazz.setAutoNotesChance(
+          mergedSettings.autoNotesChance ?? defaultSettings.autoNotesChance
+        );
+        comfyJazz.setAutoNotesDelay(
+          mergedSettings.autoNotesDelay ?? defaultSettings.autoNotesDelay
+        );
+        comfyJazz.setTranspose(
+          mergedSettings.transpose ?? defaultSettings.transpose
+        );
 
         // Re-sync UI based on the new state
         initializeControls();
 
         // Connect/disconnect streamerbot if its state changed
         if (sbSettingChanged) {
-            if (enableStreamerBot) {
-                connectStreamerBot();
-            } else {
-                disconnectStreamerBot();
-            }
+          if (enableStreamerBot) {
+            connectStreamerBot();
+          } else {
+            disconnectStreamerBot();
+          }
         }
       }
     } catch (e) {
@@ -714,8 +736,8 @@ function initializeControls() {
       if (defaultCheckbox) defaultCheckbox.checked = true;
       // Correct internal state only if it was invalid
       if (comfyJazz.instrument !== defaultSettings.instrument) {
-          comfyJazz.setInstrument(defaultSettings.instrument);
-          saveCurrentSettings(); // Persist correction
+        comfyJazz.setInstrument(defaultSettings.instrument);
+        saveCurrentSettings(); // Persist correction
       }
     }
   } else {
@@ -736,8 +758,8 @@ function initializeControls() {
       if (defaultRadio) defaultRadio.checked = true;
       // Correct internal state only if it was invalid
       if (comfyJazz.instrument !== defaultSettings.instrument) {
-          comfyJazz.setInstrument(defaultSettings.instrument);
-          saveCurrentSettings(); // Persist correction
+        comfyJazz.setInstrument(defaultSettings.instrument);
+        saveCurrentSettings(); // Persist correction
       }
     }
   }

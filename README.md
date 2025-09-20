@@ -16,6 +16,36 @@ This project is based on [Instafluff's ComfyJazz](https://github.com/instafluff/
 - Twitch chat integration
 - Keyboard input support
 - Reset to defaults functionality
+- **OBS Studio integration** with dedicated browser dock
+
+## OBS Studio Integration
+
+ComfyJazz includes an OBS Browser Dock for live streaming workflows:
+
+### Setup
+
+1. **Build the project**: `npm run build`
+2. **Deploy** the `dist/` folder to your web server
+3. **Add a Custom Browser Dock** in OBS Studio:
+   - Go to `View` → `Docks` → `Custom Browser Docks...`
+   - Dock Name: `ComfyJazz`
+   - URL: `https://yoursite.com/obs-dock.html`
+   - Click `Apply` (use `View` → `Docks` to show it if not visible)
+4. _(Optional)_ **Add as a Browser Source** in a scene using the same URL if you want on‑scene controls
+
+### Dock Features
+
+- **Remote Control**: Control ComfyJazz from within OBS
+- **Real-time Sync**: Changes sync instantly between main app and dock
+- **Compact Interface**: Optimized for OBS dock constraints
+- **Collapsible Auto Notes**: Auto Notes section is collapsed by default; click the chevron to toggle
+- **Reset with Confirmation**: Reset button (top-right) asks for confirmation before applying defaults
+- **All Controls**: Volume, instruments, auto-notes, transpose, and more
+
+### URLs
+
+- **Main App**: `https://yoursite.com/`
+- **OBS Dock**: `https://yoursite.com/obs-dock.html`
 
 ## Usage
 
